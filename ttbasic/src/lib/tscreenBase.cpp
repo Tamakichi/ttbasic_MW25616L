@@ -115,6 +115,7 @@ void tscreenBase::clerLine(uint16_t l) {
 void tscreenBase::cls() {
   CLEAR();
   memset(screen, 0, width*height);
+  locate(0,0);
 }
 
 // スクリーンリフレッシュ表示
@@ -681,7 +682,7 @@ uint8_t tscreenBase::edit() {
       //case SC_KEY_CTRL_L:  // [CTRL+L] 画面クリア
       case SC_KEY_F1:        // F1
         cls();
-        locate(0,0);
+        //locate(0,0);
         break;
  
       case SC_KEY_HOME:      // [HOMEキー] 行先頭移動

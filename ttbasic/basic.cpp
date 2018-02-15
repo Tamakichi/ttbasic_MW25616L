@@ -7,6 +7,7 @@
 //  2018/02/11 SRAM節約修正&機能拡張 by たま吉さん
 //   (キーワード、エラーメッセージをフラッシュメモリに配置)
 //  修正 2018/02/14 「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+//  修正 2018/02/15 　EDITコマンドでスクリーンエディタON/OFF設定対応
 //
 
 #include <Arduino.h>
@@ -50,11 +51,29 @@ tTermscreen sc;      // ターミナルスクリーンインスタンス
 // Depending on device functions
 // TO-DO Rewrite these functions to fit your machine
 #define STR_EDITION "ARDUINO"
-#define STR_VARSION "Extended version 0.02"
+#define STR_VARSION "Extended version 0.03"
 
 // Terminal control
-#define c_getch( ) sc.get_ch()
-#define c_kbhit( ) sc.isKeyIn()
+//#define c_getch( ) sc.get_ch()
+//#define c_kbhit( ) sc.isKeyIn()
+uint8_t flgEdit = 1; // スクリーンエディタ利用
+
+uint8_t c_getch() {
+  if (flgEdit)
+    return sc.get_ch();
+  else {
+    int16_t c = Serial.read();
+    return c >=0 ? c:0;
+  }
+}
+inline uint8_t c_kbhit() {
+  if (flgEdit)
+    return sc.isKeyIn();
+  else {
+    int16_t c = Serial.read();
+    return c >=0 ? c:0;
+  }
+}
 
 // **** 仮想メモリ定義 ****************************
 #define V_VRAM_TOP  0x0000
@@ -153,19 +172,29 @@ inline uint8_t IsUseablePin(uint8_t pinno, uint8_t fnc) {
 //  c     : 出力文字
 //  devno : デバイス番号 0:メインスクリーン 1:シリアル 2:グラフィック 3:、メモリー 4:ファイル
 inline void c_putch(uint8_t c, uint8_t devno = CDEV_SCREEN) {
-  if (devno == CDEV_SCREEN )
-    sc.putch(c); // メインスクリーンへの文字出力
-  else if (devno == CDEV_MEMORY)
+  if (devno == CDEV_SCREEN ) {
+   if (flgEdit)
+     sc.putch(c); // メインスクリーンへの文字出力
+   else 
+     Serial.write(c);
+  } else if (devno == CDEV_MEMORY) {
    mem_putch(c); // メモリーへの文字列出力
+  }
 } 
 
 //  改行
 //  devno : デバイス番号 0:メインスクリーン 1:シリアル 2:グラフィック 3:、メモリー 4:ファイル
 inline void newline(uint8_t devno=CDEV_SCREEN) {
- if (devno== CDEV_SCREEN )
-   sc.newLine();        // メインスクリーンへの文字出力
-  else if (devno == CDEV_MEMORY )
+ if (devno== CDEV_SCREEN ) {
+  if (flgEdit) {
+    sc.newLine();        // メインスクリーンへの文字出力
+  } else {
+    c_putch(13); //CR
+    c_putch(10); //LF    
+  }
+ } else if (devno == CDEV_MEMORY ) {
     mem_putch('\n'); // メモリーへの文字列出力
+ }
 }
 
 // Return random number
@@ -179,7 +208,7 @@ short iexp(void);
 // Keyword table
 KW(k000,"GOTO"); KW(k001,"GOSUB"); KW(k002,"RETURN"); KW(k069,"END");
 KW(k003,"FOR"); KW(k004,"TO"); KW(k005,"STEP"); KW(k006,"NEXT");
-KW(k007,"IF"); KW(k068,"ELSE"); KW(k008,"REM"); KW(k009,"STOP"); 
+KW(k007,"IF"); KW(k068,"ELSE"); KW(k008,"REM"); KW(k009,"EDIT"); 
 KW(k010,"INPUT"); KW(k011,"PRINT"); KW(k042,"?"); KW(k012,"LET");
 KW(k013,","); KW(k014,";"); KW(k036,":"); KW(k070,"\'");
 KW(k015,"-"); KW(k016,"+"); KW(k017,"*"); KW(k018,"/"); KW(k019,"("); KW(k020,")");KW(k035,"$");
@@ -244,12 +273,12 @@ const char*  const kwtbl[] PROGMEM = {
 enum {
   I_GOTO, I_GOSUB, I_RETURN, I_END, 
   I_FOR, I_TO, I_STEP, I_NEXT,
-  I_IF, I_ELSE, I_REM, I_STOP,
+  I_IF, I_ELSE, I_REM, I_EDIT,
   I_INPUT, I_PRINT, I_QUEST, I_LET,
   I_COMMA, I_SEMI,I_COLON, I_SQUOT,
   I_MINUS, I_PLUS, I_MUL, I_DIV, I_OPEN, I_CLOSE, I_DOLLAR,
   I_GTE, I_SHARP, I_GT, I_EQ, I_LTE, I_LT,
-  I_LNOT, I_BITREV,I_DIVR,I_LSHIFT, I_RSHIFT, I_OR, I_AND,I_LAND, I_LOR,I_XOR,
+  I_LNOT, I_BITREV,I_DIVR,I_LSHIFT, I_RSHIFT, I_OR, I_AND,I_LAND, I_LOR, I_XOR,
   I_NEQ, I_NEQ2,
   I_ARRAY, I_RND, I_ABS, I_SIZE,
   I_LIST, I_RUN, I_NEW, I_CLS,
@@ -277,10 +306,10 @@ enum {
 // List formatting condition
 // 後ろに空白を入れない中間コード
 const PROGMEM unsigned char i_nsa[] = {
-  I_RETURN, I_STOP, I_COMMA, I_SEMI, I_COLON,I_END,
+  I_RETURN, I_COMMA, I_SEMI, I_COLON,I_END,
   I_MINUS, I_PLUS, I_MUL, I_DIV,  I_DIVR, I_OPEN, I_CLOSE, I_DOLLAR,
-  I_LSHIFT, I_RSHIFT, I_OR, I_AND, I_NEQ, I_NEQ2,
-  I_GTE, I_SHARP, I_GT, I_EQ, I_LTE, I_LT, I_LNOT, I_BITREV,
+  I_LSHIFT, I_RSHIFT, I_OR, I_AND, I_NEQ, I_NEQ2, I_XOR,
+  I_GTE, I_SHARP, I_GT, I_EQ, I_LTE, I_LT, I_LNOT, I_BITREV, I_DIVR,
   I_ARRAY, I_RND, I_ABS, I_SIZE,I_CLS, I_QUEST,
   I_CHR, I_WCHR, I_HEX, I_BIN,I_STRREF, I_WSTR,
   I_VCLS,I_INKEY,
@@ -294,8 +323,8 @@ const PROGMEM unsigned char i_nsa[] = {
 
 // 前が定数か変数のとき前の空白をなくす中間コード
 const PROGMEM unsigned char i_nsb[] = {
-  I_RETURN, I_STOP, I_COMMA,I_SEMI, I_COLON,I_SQUOT,
-  I_MINUS, I_PLUS, I_MUL, I_DIV, I_OPEN, I_CLOSE,I_LSHIFT, I_RSHIFT, I_OR, I_AND,
+  I_RETURN, I_COMMA,I_SEMI, I_COLON,I_SQUOT,
+  I_MINUS, I_PLUS, I_MUL, I_DIV,  I_DIVR,I_OPEN, I_CLOSE,I_LSHIFT, I_RSHIFT, I_OR, I_AND,
   I_GTE, I_SHARP, I_GT, I_EQ, I_LTE,  I_NEQ, I_NEQ2,I_LT, I_LNOT, I_BITREV, I_XOR,
   I_ARRAY, I_RND, I_ABS, I_SIZE  
 };
@@ -756,6 +785,32 @@ int16_t iwlen(uint8_t flgZen=0) {
     wlen = len;
   }
   return wlen;
+}
+
+void c_gets() {
+  uint8_t c; //文字
+  uint8_t len; //文字数
+  len = 0; //文字数をクリア
+  while ((c = c_getch()) != 13) { //改行でなければ繰り返す
+    if (c == 9) c = ' '; //［Tab］キーは空白に置き換える
+    //［BackSpace］キーが押された場合の処理（行頭ではないこと）
+    if (((c == 8) || (c == 127)) && (len > 0)) {
+      len--; //文字数を1減らす
+      c_putch(8); c_putch(' '); c_putch(8); //文字を消す
+    } else
+    //表示可能な文字が入力された場合の処理（バッファのサイズを超えないこと）
+    if (c>=32 && (len < (SIZE_LINE - 1))) {
+      lbuf[len++] = c; //バッファへ入れて文字数を1増やす
+      c_putch(c); //表示
+    }
+  }
+  newline(); //改行
+  lbuf[len] = 0; //終端を置く
+
+  if (len > 0) { //もしバッファが空でなければ
+    while (c_isspace(lbuf[--len])); //末尾の空白を戻る
+    lbuf[++len] = 0; //終端を置く
+  }
 }
 
 // Print numeric specified columns
@@ -1396,7 +1451,6 @@ int16_t ivalue() {
     break; 
 
   case I_BITREV: // 「~」 ビット反転
-    //cip++; //中間コードポインタを次へ進める
     value = ~((uint16_t)ivalue()); //値を取得してNOT演算
     break;
 
@@ -1807,7 +1861,7 @@ void iwstr(uint8_t devno=CDEV_SCREEN) {
 // 画面クリア
 void icls() {
   sc.cls();
-  sc.locate(0,0);
+  err=0;
 }
 
 // PRINT handler
@@ -1996,12 +2050,7 @@ void iinput() {
     }
     
     if (prompt) {          // もしまだプロンプトを表示していなければ
-      if (index >=26) {
-       c_putch('A'+index%26);    // 変数名を表示
-       c_putch('0'+index/26-1);  // 変数名を表示
-      } else {
-        c_putch('A'+index);  // 変数名を表示
-      }
+      c_putch('A'+index);  // 変数名を表示
       c_putch(':');        //「:」を表示
     }
     
@@ -2332,7 +2381,7 @@ void ilist(uint8_t devno=0) {
     //強制的な中断の判定
     c = c_kbhit();
     if (c) { // もし未読文字があったら
-        if (c == SC_KEY_CTRL_C || c==27 ) { // 読み込んでもし[ESC],［CTRL_C］キーだったら
+        if (c == SC_KEY_CTRL_C || c==SC_KEY_ESCAPE ) { // 読み込んでもし[ESC],［CTRL_C］キーだったら
           err = ERR_CTR_C;                  // エラー番号をセット
           prevPressKey = 0;
           break;
@@ -2550,6 +2599,15 @@ void irenum() {
   }
 }
 
+// スクリーンエディタのON/OFF
+void iedit() {
+  int16_t mode;
+
+  if ( getParam(mode, 0, 1, false) ) return;
+  flgEdit = mode;
+  icls();
+}
+
 // プログラム保存 SAVE 保存領域番号|"ファイル名"
 void isave() {
   int16_t  prgno = 0;
@@ -2569,13 +2627,9 @@ void isave() {
 
 //NEW command handler
 void inew(void) {
-  unsigned char i; //ループカウンタ
-
   //変数と配列の初期化
-  for (i = 0; i < 26; i++) //変数の数だけ繰り返す
-    var[i] = 0; //変数を0に初期化
-  for (i = 0; i < SIZE_ARRY; i++) //配列の数だけ繰り返す
-    arr[i] = 0; //配列を0に初期化
+  memset(var,0,26);
+  memset(arr,0,SIZE_ARRY);
 
   //実行制御用の初期化
   gstki = 0; //GOSUBスタックインデクスを0に初期化
@@ -3201,8 +3255,8 @@ unsigned char* iexe() {
     case I_FOR:      ifor();            break;  // FORの場合
     case I_NEXT:     inext();           break;  // NEXTの場合
     case I_IF:       iif();             break;  // IFの場合
-    case I_ELSE:     iskip();           break;  // 単独のELSEの場合
-    case I_SQUOT:    iskip();           break;  // 'の場合
+    case I_ELSE:                                // 単独のELSEの場合
+    case I_SQUOT:                               // 'の場合
     case I_REM:      iskip();           break;  // REMの場合
     case I_END:      iend();            break;  // ENDの場合
     case I_CLS:      icls();            break;  // CLS
@@ -3210,11 +3264,10 @@ unsigned char* iexe() {
     case I_LOCATE:   ilocate();         break;  // LOCATE
     case I_COLOR:    icolor();          break;  // COLOR
     case I_ATTR:     iattr();           break;  // ATTR
-    case I_STOP:     iend();            break;  // STOPの場合
     case I_VAR:      ivar();            break;  // 変数（LETを省略した代入文）
     case I_ARRAY:    iarray();          break;  // 配列（LETを省略した代入文）
     case I_LET:      ilet();            break;  // LET
-    case I_QUEST:    iprint();          break;  // PRINT
+    case I_QUEST:                               // ？
     case I_PRINT:    iprint();          break;  // PRINT
     case I_INPUT:    iinput();          break;  // INPUT
     case I_POKE:     ipoke();           break;  // POKEコマンド
@@ -3235,28 +3288,25 @@ unsigned char* iexe() {
     case I_VCLS:     ivcls();           break;  // VCLS
     case I_VBRIGHT:  ivbright();        break;  // VBRIGHT
     case I_VDISPLAY: ivdisplay();       break;  // VDISPLAY文を実行
-
-    case I_TONE:      itone();        break;  // TONE
-    case I_NOTONE:    inotone();      break;  // NOTONE
+    case I_TONE:     itone();           break;  // TONE
+    case I_NOTONE:   inotone();         break;  // NOTONE
 #if USE_CMD_PLAY == 1
-    case I_PLAY:      iplay();        break;  // PLAY
+    case I_PLAY:      iplay();          break;  // PLAY
 #endif
-    case I_SYSINFO:   iinfo();        break;  // SYSINFO        
+    case I_SYSINFO:   iinfo();          break;  // SYSINFO        
     // システムコマンド
     case I_RUN:    // 中間コードがRUNの場合
-    case I_RENUM:  // RENUM    
+    case I_RENUM:  // RENUM
+    case I_EDIT:   // EDIT
       err = ERR_COM; //エラー番号をセット
       return NULL; //終了
-
-    case I_SEMI: //中間コードが「;」の場合
-      break; //打ち切る
-
     case I_COLON: // 中間コードが「:」の場合
       break; 
       
     default: //以上のいずれにも該当しない場合
      cip--;
      err = ERR_SYNTAX; //エラー番号をセット
+     
       break; //打ち切る
     } //中間コードで分岐の末尾
 
@@ -3270,12 +3320,12 @@ unsigned char* iexe() {
 uint8_t icom() {
   uint8_t rc = 1;
   cip = ibuf; // 中間コードポインタを中間コードバッファの先頭に設定
-
   switch (*cip++) { // 中間コードポインタが指し示す中間コードによって分岐
   case I_LOAD: iload();   break;  // LOAD命令を実行
   case I_RUN:   sc.show_curs(0); irun();  sc.show_curs(1);   break; // RUN命令
-  case I_RENUM: irenum(); break; // I_RENUMの場合  
-  case I_CLS:icls();
+  case I_RENUM: irenum(); break; // RENUMの場合  
+  case I_EDIT:iedit(); break;    // EDITの場合
+  case I_CLS: icls();
   case I_REM:
   case I_SQUOT:
   case I_OK:    rc = 0;     break; // I_OKの場合
@@ -3360,18 +3410,24 @@ void basic() {
   //端末から1行を入力して実行
   sc.show_curs(1);
   while (1) { //無限ループ
-    sc.edit();
-    textline = (char*)sc.getText(); // スクリーンバッファからテキスト取得
-    if (!strlen(textline) ) {
-      // 改行のみ
+    if (flgEdit) {
+      sc.edit();
+      textline = (char*)sc.getText(); // スクリーンバッファからテキスト取得
+      if (!strlen(textline) ) {
+        // 改行のみ
+        newline();
+        continue;
+      }
+      // 行バッファに格納し、改行する
+      strcpy(lbuf, textline);
+      tlimR((char*)lbuf); //文末の余分空白文字の削除
       newline();
-      continue;
+    } else {
+      c_putch('>'); //プロンプトを表示
+      c_gets();
+      if(!strlen(lbuf))
+        continue;
     }
-    // 行バッファに格納し、改行する
-    strcpy(lbuf, textline);
-    tlimR((char*)lbuf); //文末の余分空白文字の削除
-    newline();
-      
     //1行の文字列を中間コードの並びに変換
     len = toktoi(); //文字列を中間コードに変換して長さを取得
     if (err) { //もしエラーが発生したら
@@ -3404,7 +3460,7 @@ inline void mem_putch(uint8_t c) {
 }
 
 // メモリ書き込みポインタのクリア
-void cleartbuf() {
+inline void cleartbuf() {
   tbuf_pos=0;
   memset(tbuf,0,SIZE_LINE);
 }

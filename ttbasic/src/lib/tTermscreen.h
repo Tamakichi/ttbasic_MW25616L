@@ -29,7 +29,7 @@ class tTermscreen : public tscreenBase  {
     void SCROLL_UP() {scroll();};                // スクロールアップ
     void SCROLL_DOWN() {INSLINE(0);};            // スクロールダウン
     void INSLINE(uint8_t l);                     // 指定行に1行挿入(下スクロール)
-    
+      
   public:
     tTermscreen() {};
     virtual ~tTermscreen() {};
