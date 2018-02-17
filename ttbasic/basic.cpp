@@ -7,7 +7,9 @@
 //  2018/02/11 SRAM節約修正&機能拡張 by たま吉さん
 //   (キーワード、エラーメッセージをフラッシュメモリに配置)
 //  修正 2018/02/14 「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
-//  修正 2018/02/15 　EDITコマンドでスクリーンエディタON/OFF設定対応
+//  修正 2018/02/15 EDITコマンドでスクリーンエディタON/OFF設定対応
+//  修正 2018/02/16 SAVE,LOAD,FILESの高速化(EEPROMクラスライブラリ利用からavr/eepromライブラリ利用に変更)
+//  修正 2018/02/17 EDIT OFF時の行編集時の改善(CLS不具合,全角文字削除対応)
 //
 
 #include <Arduino.h>
@@ -36,7 +38,6 @@ int16_t ipeek();
 int16_t ii2cw();
 int16_t ii2cr();
 
-tTermscreen sc;      // ターミナルスクリーンインスタンス
 
 // TOYOSHIKI TinyBASIC symbols
 // TO-DO Rewrite defined values to fit your machine as needed
@@ -54,26 +55,10 @@ tTermscreen sc;      // ターミナルスクリーンインスタンス
 #define STR_VARSION "Extended version 0.03"
 
 // Terminal control
-//#define c_getch( ) sc.get_ch()
-//#define c_kbhit( ) sc.isKeyIn()
+tTermscreen sc;      // ターミナルスクリーンインスタンス
+#define c_getch( ) sc.get_ch()
+#define c_kbhit( ) sc.isKeyIn()
 uint8_t flgEdit = 1; // スクリーンエディタ利用
-
-uint8_t c_getch() {
-  if (flgEdit)
-    return sc.get_ch();
-  else {
-    int16_t c = Serial.read();
-    return c >=0 ? c:0;
-  }
-}
-inline uint8_t c_kbhit() {
-  if (flgEdit)
-    return sc.isKeyIn();
-  else {
-    int16_t c = Serial.read();
-    return c >=0 ? c:0;
-  }
-}
 
 // **** 仮想メモリ定義 ****************************
 #define V_VRAM_TOP  0x0000
@@ -137,7 +122,7 @@ inline uint8_t c_kbhit() {
 #endif
 
 // *** 内部EEPROMフラッシュメモリ管理 ***********
-#include <EEPROM.h>
+#include <avr/eeprom.h>
 #define EEPROM_PAGE_NUM         2      // 全ページ数
 #define EEPROM_PAGE_SIZE        512    // ページ内バイト数
 #define EEPROM_SAVE_NUM         2      // プログラム保存可能数
@@ -176,7 +161,8 @@ inline void c_putch(uint8_t c, uint8_t devno = CDEV_SCREEN) {
    if (flgEdit)
      sc.putch(c); // メインスクリーンへの文字出力
    else 
-     Serial.write(c);
+     //Serial.write(c);
+     sc.WRITE(c);
   } else if (devno == CDEV_MEMORY) {
    mem_putch(c); // メモリーへの文字列出力
   }
@@ -236,34 +222,34 @@ KW(k100,"PEEK"); KW(k101,"POKE"); KW(k102,"I2CW"); KW(k103,"I2CR"); KW(k104,"TIC
 KW(k071,"OK");
  
 const char*  const kwtbl[] PROGMEM = {
- k000,k001,k002,k069,
- k003,k004,k005,k006,
- k007,k068,k008,k009,
- k010,k011,k042,k012,
- k013,k014,k036,k070,
- k015,k016,k017,k018,k019,k020,k035,
- k021,k022,k023,k024,k025,k026, 
- k056,k057,k058,k059,k060,k061,k062,k063,k064,k065,
- k066,k067,
- k027,k028,k029,k030,
- k031,k032,k033,k034,
- k037,k038,k039,k040,k041,k106,
- k043,k044,k045,k046,k047,
- k048,k049,k050,k051,k072,k073,
- k074,k075,k076,k077, 
- k052,k053,k054,k055, 
- k078,k079,k080, 
- k081,k082,k083, 
- k084,k085,k086,k087,k088,k089, 
- k090,
- k091,k092,
- #if USE_CMD_PLAY == 1
- k093,
- #endif
- k094,
- k095,k096,k097,k098,k099,
- k100,k101,k102,k103,k104,
- k071,
+  k000,k001,k002,k069,
+  k003,k004,k005,k006,
+  k007,k068,k008,k009,
+  k010,k011,k042,k012,
+  k013,k014,k036,k070,
+  k015,k016,k017,k018,k019,k020,k035,
+  k021,k022,k023,k024,k025,k026, 
+  k056,k057,k058,k059,k060,k061,k062,k063,k064,k065,
+  k066,k067,
+  k027,k028,k029,k030,
+  k031,k032,k033,k034,
+  k037,k038,k039,k040,k041,k106,
+  k043,k044,k045,k046,k047,
+  k048,k049,k050,k051,k072,k073,
+  k074,k075,k076,k077, 
+  k052,k053,k054,k055, 
+  k078,k079,k080, 
+  k081,k082,k083, 
+  k084,k085,k086,k087,k088,k089, 
+  k090,
+  k091,k092,
+  #if USE_CMD_PLAY == 1
+  k093,
+  #endif
+  k094,
+  k095,k096,k097,k098,k099,
+  k100,k101,k102,k103,k104,
+  k071,
 };
 
 // Keyword count
@@ -460,11 +446,11 @@ char c_isalpha(char c) {
 }
 
 // 全角判定
-
 inline uint8_t isZenkaku(uint8_t c){
    return (((c>=0x81)&&(c<=0x9f))||((c>=0xe0)&&(c<=0xfc))) ? 1:0;
 }
 
+// 文末空白文字のトリム処理
 char* tlimR(char* str) {
   uint16_t len = strlen(str);
   for (uint16_t i = len - 1; i>0 ; i--) {
@@ -478,7 +464,7 @@ char* tlimR(char* str) {
 }
 
 // コマンド引数取得(int16_t,引数チェックあり)
-inline uint8_t getParam(int16_t& prm, int16_t  v_min,int16_t v_max, uint8_t flgCmma) {
+inline uint8_t getParam(int16_t& prm, int16_t v_min,int16_t v_max,uint8_t flgCmma) {
   prm = iexp(); 
   if (!err &&  (prm < v_min || prm > v_max)) 
     err = ERR_VALUE;
@@ -517,14 +503,14 @@ inline uint8_t getParam(int32_t& prm, uint8_t flgCmma) {
 
 // '('チェック関数
 inline uint8_t checkOpen() {
-  if (*cip != I_OPEN)  err = ERR_PAREN;
+  if (*cip != I_OPEN) err = ERR_PAREN;
   else cip++;
   return err;
 }
 
 // ')'チェック関数
 inline uint8_t checkClose() {
-  if (*cip != I_CLOSE)  err = ERR_PAREN;
+  if (*cip != I_CLOSE) err = ERR_PAREN;
   else cip++;
   return err;
 }
@@ -795,8 +781,14 @@ void c_gets() {
     if (c == 9) c = ' '; //［Tab］キーは空白に置き換える
     //［BackSpace］キーが押された場合の処理（行頭ではないこと）
     if (((c == 8) || (c == 127)) && (len > 0)) {
+      if (len-1 >0) {
+        if (isZenkaku(lbuf[len-2])) {
+          len--;
+          c_putch(8); c_putch(' '); c_putch(8); //文字を消す      
+        }
+      } 
       len--; //文字数を1減らす
-      c_putch(8); c_putch(' '); c_putch(8); //文字を消す
+      c_putch(8); c_putch(' '); c_putch(8); //文字を消す      
     } else
     //表示可能な文字が入力された場合の処理（バッファのサイズを超えないこと）
     if (c>=32 && (len < (SIZE_LINE - 1))) {
@@ -902,7 +894,7 @@ int16_t getnum() {
   uint8_t sign; //負号
 
   len = 0; //文字数をクリア
-  while(1) {
+  for(;;) {
     c = c_getch();
     if (c == SC_KEY_CR && len) {
         break;
@@ -1028,10 +1020,8 @@ unsigned char toktoi() {
 
       s+= strlen_P((char*)pgm_read_word(&(kwtbl[key])));
 
-    } else {
-      //err = ERR_SYNTAX; //エラー番号をセット
-      //return 0;
     }
+    
     // 16進数の変換を試みる $XXXX
     if (key == I_DOLLAR) {
       if (isHexadecimalDigit(*s)) {   // もし文字が16進数文字なら
@@ -1105,7 +1095,7 @@ unsigned char toktoi() {
     else
 
     //文字列への変換を試みる
-    if (*s == '\"' || *s == '\'') { //もし文字が「"」か「'」なら
+    if (*s == '\"') { //もし文字が「"」なら
       c = *s++; //「"」か「'」を記憶して次の文字へ進む
       ptok = s; //文字列の先頭を指す
       //文字列の文字数を得る
@@ -1120,7 +1110,7 @@ unsigned char toktoi() {
       while (i--) { //文字列の文字数だけ繰り返す
         ibuf[len++] = *s++; //文字列を記録
       }
-      if (*s == c) s++; //もし文字が「"」か「'」なら次の文字へ進む
+      if (*s == c) s++; //もし文字が「"」なら次の文字へ進む
     }
     else
 
@@ -1130,6 +1120,7 @@ unsigned char toktoi() {
         err = ERR_IBUFOF; //エラー番号をセット
         return 0; //0を持ち帰る
       }
+    
       //もし変数が3個並んだら
       if (len >= 4 && ibuf[len - 2] == I_VAR && ibuf[len - 4] == I_VAR) {
         err = ERR_SYNTAX; //エラー番号をセット
@@ -2621,7 +2612,7 @@ void isave() {
   // 内部EEPROMメモリへの保存
   topAddr = EEPROM_PAGE_SIZE*prgno;
   for (uint16_t i=0; i < SIZE_LIST; i++) {
-    EEPROM.write(topAddr+i,listbuf[i]); 
+    eeprom_update_block(listbuf,topAddr,SIZE_LIST);
   }
 }
 
@@ -2655,39 +2646,33 @@ void iload(uint8_t flgskip=0) {
   
   // 内部EEPROMメモリからのロード
   topAddr = EEPROM_PAGE_SIZE*prgno;
-  for (uint16_t i=0; i < SIZE_LIST; i++) {
-    listbuf[i] = EEPROM.read(topAddr+i); 
-  }
+  eeprom_read_block(listbuf, topAddr, SIZE_LIST);
+
 }
 
 // フラッシュメモリ上のプログラム消去 ERASE[プログラム番号[,プログラム番号]
 void ierase() {
   int16_t  s_prgno, e_prgno;
-  uint16_t topAddr;
-  
+  uint32_t* topAddr;
+    
   if ( getParam(s_prgno, 0, EEPROM_SAVE_NUM-1, false) ) return;
   e_prgno = s_prgno;
   if (*cip == I_COMMA) {
     cip++;
     if ( getParam(e_prgno, 0, EEPROM_SAVE_NUM-1, false) ) return;
   }
-  
   for (uint8_t prgno = s_prgno; prgno <= e_prgno; prgno++) {
-    topAddr = EEPROM_PAGE_SIZE*prgno;
-    for (uint16_t i=0; i < SIZE_LIST; i++) {
-      EEPROM.write(topAddr+i,0); 
-    }    
+    topAddr = (uint32_t*)(EEPROM_PAGE_SIZE*prgno);
+    for (uint16_t i=0; i < SIZE_LIST/4; i++) {
+      eeprom_update_dword(topAddr,0);
+    }      
   }
 }
 
 // プログラムファイル一覧表示 FILES
 void ifiles() {
-  uint8_t* flash_adr;
-  uint8_t* save_clp;
   int16_t StartNo, endNo; // プログラム番号開始、終了
-  
-  // フラッシュメモリのプログラムリスト
-  
+    
   // 引数が数値または、無しの場合、フラッシュメモリのリスト表示
   if (*cip == I_EOL || *cip == I_COLON) {
    StartNo = 0;
@@ -2706,26 +2691,20 @@ void ifiles() {
       return;    
     }
   }     
-  save_clp = clp;
   for (uint8_t i=StartNo ; i <= endNo; i++) {
     // EEOROMからデータのコピー
     cleartbuf();
-    for (uint16_t j=0; j < SIZE_LINE; j++) {
-      tbuf[j] = EEPROM.read(EEPROM_PAGE_SIZE*i+j);
-    }            
-    flash_adr = tbuf; // プログラム保存アドレスの取得    
+    eeprom_read_block(tbuf,(uint8_t*)(EEPROM_PAGE_SIZE*i), SIZE_LINE);
     putnum(i,1);  c_putch(':');
     if( (tbuf[0] == 0x00) && (tbuf[1] == 0x00) ) {  //  プログラム有無のチェック
       c_puts_P((const char*)F("(none)"));        
     } else {
-      clp = flash_adr;
-      if (*clp) {
-        putlist(clp + 3);         // 行番号より後ろを文字列に変換して表示
+      if (*tbuf) {
+        putlist(tbuf+3);         // 行番号より後ろを文字列に変換して表示
       } 
     } 
     newline();
   }
-  clp = save_clp;
 }
 
 // 時間待ち
@@ -2859,8 +2838,8 @@ void inotone() {
 }
 
 // PLAY 文字列
-void iplay() {
 #if USE_CMD_PLAY == 1
+void iplay() {
   uint8_t* ptr = tbuf;
   uint16_t freq;              // 周波数
   uint16_t len = mml_len ;    // 共通長さ
@@ -3071,8 +3050,8 @@ void iplay() {
       return;              
     }
   }
-#endif
 }
+#endif
 
 // メモリ参照　PEEK(adr[,bnk])
 int16_t ipeek() {

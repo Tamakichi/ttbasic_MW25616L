@@ -8,6 +8,7 @@
 // 修正日 2018/01/30 [F7]:行の分割、[F8]:行の結合操作の追加
 // 修正日 2018/02/02 editLine()の追加
 // 修正日 2018/02/10, 基底クラスtSerialDevの廃止対応
+// 修正日 2018/02/16, while() をfor(;;)に変更
 
 #include <string.h>
 #include <stdlib.h>
@@ -444,7 +445,7 @@ void tscreenBase::movePosNextLineChar() {
     } else {
       // カーソルを次行の行末文字に移動
       int16_t x = pos_x;
-      while(1) {
+      for(;;) {
         if (IS_PRINT(VPEEK(x, pos_y + 1)) ) 
            break;  
         if (x > 0)
@@ -477,7 +478,7 @@ void tscreenBase::movePosPrevLineChar() {
     } else {
       // カーソルの真上に文字が無い場合は、前行の行末文字に移動する
       int16_t x = pos_x;
-      while(1) {
+      for(;;) {
         if (IS_PRINT(VPEEK(x, pos_y - 1)) ) 
            break;  
         if (x > 0)
@@ -500,7 +501,7 @@ void tscreenBase::movePosPrevLineChar() {
 // カーソルを行末に移動
 void tscreenBase::moveLineEnd() {
   int16_t x = width-1;
-  while(1) {
+  for(;;) {
     if (IS_PRINT(VPEEK(x, pos_y)) ) 
        break;  
     if (x > 0)
@@ -670,7 +671,7 @@ uint16_t tscreenBase::get_wch() {
 // スクリーン編集
 uint8_t tscreenBase::edit() {
   uint16_t ch;  // 入力文字  
-  do {
+  for(;;) {
     ch = get_wch();   
     show_curs(false);
     switch(ch) {
@@ -770,9 +771,11 @@ uint8_t tscreenBase::edit() {
       break;
     }
     show_curs(true);
-  } while(1);
+  };
    show_curs(true);
 }
+
+#if USE_EDITLINE == 1
 
 // ライン編集
 // 中断の場合、0を返す
@@ -782,7 +785,7 @@ uint8_t tscreenBase::editLine() {
   uint16_t ch;  // 入力文字  
   
   show_curs(true);
-  do {
+  for(;;) {
     ch = get_wch();   
     switch(ch) {
       case SC_KEY_CR:         // [Enter]キー
@@ -828,5 +831,7 @@ uint8_t tscreenBase::editLine() {
         }  
         break;
     }
-  } while(1);
+  };
 }
+#endif
+

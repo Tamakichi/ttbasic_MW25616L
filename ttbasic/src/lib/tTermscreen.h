@@ -19,7 +19,7 @@
 #include "mcurses.h"
 
 class tTermscreen : public tscreenBase  {
-	protected:
+  public:
     void INIT_DEV();                             // デバイスの初期化
     void MOVE(uint8_t y, uint8_t x);             // キャラクタカーソル移動
     void WRITE(uint8_t x, uint8_t y, uint8_t c); // 文字の表示

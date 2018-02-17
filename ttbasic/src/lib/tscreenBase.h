@@ -11,6 +11,7 @@
 #define __tscreenBase_h__
 
 #define DEPEND_TTBASIC           1     // 豊四季TinyBASIC依存部利用の有無 0:利用しない 1:利用する
+#define USE_EDITLINE             0     // 行編集関数editLineの利用  0:利用しない 1:利用する     
 
 #include <Arduino.h>
 
@@ -69,7 +70,7 @@ class tscreenBase  {
     uint8_t flgCur;             // カーソル表示設定
     uint8_t flgExtMem;          // 外部確保メモリ利用フラグ
 	
-protected:
+  public:
     virtual void INIT_DEV() =0;                              // デバイスの初期化
 	  virtual void END_DEV() {};                               // デバイスの終了
     virtual void MOVE(uint8_t y, uint8_t x) =0;              // キャラクタカーソル移動
@@ -143,9 +144,11 @@ protected:
     void splitLine();                           // カーソル位置で行を分割する
     void margeLine();                           // 現在行の末尾に次の行を結合する
     void deleteLine(uint16_t l);                // 指定行を削除
+#if USE_EDITLINE == 1
     virtual uint8_t editLine();                 // ライン編集
-    
-};
+#endif
+ };
+
 
 #endif
 
