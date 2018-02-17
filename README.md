@@ -11,7 +11,19 @@
   http://vfd-fun.blogspot.jp/
 
 オリジナル版配布サイト <https://github.com/vintagechips/ttbasic_arduino>  
-関連情報 電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版  
+関連情報 電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版    
+
+**補足**  
+- コンソール画面の切り替え  
+  EDIT OFF ：ラインエディタモード  
+  EDIT ON  ：スクリーンエディタモード（ただし 横48文字 ｘ縦8行）  
+  デフォルトは、スクリーンエディタモードになっています。  
+  （下記の画像はラインエディタモード時の画面）  
+  ![screen](./image/screen.png)  
+
+
+その他の利用方法については、付属のリファレンス・マニュアルを参照して下さい。  
+
 
 
 以下はオリジナル版のドキュメントです。  
