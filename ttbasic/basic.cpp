@@ -2611,9 +2611,7 @@ void isave() {
   
   // 内部EEPROMメモリへの保存
   topAddr = EEPROM_PAGE_SIZE*prgno;
-  for (uint16_t i=0; i < SIZE_LIST; i++) {
-    eeprom_update_block(listbuf,topAddr,SIZE_LIST);
-  }
+  eeprom_update_block(listbuf,topAddr,SIZE_LIST);
 }
 
 //NEW command handler
