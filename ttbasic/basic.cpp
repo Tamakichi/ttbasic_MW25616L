@@ -10,12 +10,16 @@
 //  修正 2018/02/15 EDITコマンドでスクリーンエディタON/OFF設定対応
 //  修正 2018/02/16 SAVE,LOAD,FILESの高速化(EEPROMクラスライブラリ利用からavr/eepromライブラリ利用に変更)
 //  修正 2018/02/17 EDIT OFF時の行編集時の改善(CLS不具合,全角文字削除対応)
+//  修正 2018/02/21 tTermscreenを使わないコンパイルを可能に修正(フラッシュメモリ節約)
+//  修正 2018/02/22 ラインエディタで[TAB],[UP][DOWN][↑][↓][←][→][F1][F2][DEL][BS][HOME][END]キー対応
 //
 
 #include <Arduino.h>
+//#include <SoftwareSerial.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 #define KW(k,s) const char k[] PROGMEM=s  // キーワード定義マクロ
+//SoftwareSerial SSerial(10, 11); 
 
 // 入出力キャラクターデバイス
 #define CDEV_SCREEN   0  // メインスクリーン
@@ -37,7 +41,11 @@ void iinfo();
 int16_t ipeek();
 int16_t ii2cw();
 int16_t ii2cr();
-
+int16_t getPrevLineNo(int16_t lineno);
+int16_t getNextLineNo(int16_t lineno);
+char* getLineStr(int16_t lineno);
+short getlineno(unsigned char *lp);
+void icls();
 
 // TOYOSHIKI TinyBASIC symbols
 // TO-DO Rewrite defined values to fit your machine as needed
@@ -45,6 +53,7 @@ int16_t ii2cr();
 #define SIZE_LINE 64 //Command line buffer length + NULL
 #define SIZE_IBUF 64  //i-code conversion buffer size
 #define SIZE_LIST 512 //List buffer size
+//#define SIZE_LIST 1024 //List buffer size
 #define SIZE_ARRY 16  //Array area size
 #define SIZE_GSTK 6  //GOSUB stack size(2/nest)
 #define SIZE_LSTK 15  //FOR stack size(5/nest)
@@ -52,13 +61,44 @@ int16_t ii2cr();
 // Depending on device functions
 // TO-DO Rewrite these functions to fit your machine
 #define STR_EDITION "ARDUINO"
-#define STR_VARSION "Extended version 0.03"
+#define STR_VARSION "Extended version 0.04"
 
 // Terminal control
-tTermscreen sc;      // ターミナルスクリーンインスタンス
-#define c_getch( ) sc.get_ch()
-#define c_kbhit( ) sc.isKeyIn()
+#include "src/lib/mcurses.h"
+#if USE_SCREEN == 1 
+  tTermscreen sc;      // ターミナルスクリーンインスタンス
+  #define c_getch() sc.get_ch()
+  #define c_kbhit() sc.isKeyIn()
+  #define c_show_curs(c) sc.show_curs(c)
+  #define c_getHeight()  sc.getHeight()
+  #define c_getWidth()   sc.getWidth()
+  #define c_beep()       sc.beep()
+  #define c_IsCurs()     sc.IsCurs()
 uint8_t flgEdit = 1; // スクリーンエディタ利用
+# else
+  uint8_t flgCurs = 0;
+  // シリアル経由1文字出力
+  static void Arduino_putchar(uint8_t c) {
+    Serial.write(c);
+  }
+  
+  // シリアル経由1文字入力
+  static char Arduino_getchar() {
+    while (!Serial.available());
+    return Serial.read();
+  }
+  inline void c_show_curs(uint8_t mode) {
+      flgCurs = mode;
+      curs_set(mode);
+  }
+  #define c_getch() getch()
+  #define c_kbhit() (Serial.available()?getch():0)
+  #define c_getHeight()  MCURSES_LINES
+  #define c_getWidth()   MCURSES_COLS
+  #define c_beep()       addch(0x07)
+  #define c_IsCurs()     flgCurs
+  uint8_t flgEdit = 0; // スクリーンエディタ利用
+#endif 
 
 // **** 仮想メモリ定義 ****************************
 #define V_VRAM_TOP  0x0000
@@ -77,7 +117,7 @@ uint8_t flgEdit = 1; // スクリーンエディタ利用
 
 // *** MW25616L VFDディスプレイ ********************
 #if USE_CMD_VFD == 1
-  #include "MW25616L.h" // MW25616L VFDディスプレイ
+  #include "src/lib/MW25616L.h" // MW25616L VFDディスプレイ
   MW25616L VFD;         // VFDドライバ
 #endif
 // *** サウンド(Tone/PLAY) *************************
@@ -156,13 +196,16 @@ inline uint8_t IsUseablePin(uint8_t pinno, uint8_t fnc) {
 // 指定デバイスへの文字の出力
 //  c     : 出力文字
 //  devno : デバイス番号 0:メインスクリーン 1:シリアル 2:グラフィック 3:、メモリー 4:ファイル
-inline void c_putch(uint8_t c, uint8_t devno = CDEV_SCREEN) {
+void c_putch(uint8_t c, uint8_t devno = CDEV_SCREEN) {
   if (devno == CDEV_SCREEN ) {
+#if USE_SCREEN == 1
    if (flgEdit)
      sc.putch(c); // メインスクリーンへの文字出力
    else 
-     //Serial.write(c);
-     sc.WRITE(c);
+     addch(c);
+#else
+   addch(c);
+#endif
   } else if (devno == CDEV_MEMORY) {
    mem_putch(c); // メモリーへの文字列出力
   }
@@ -170,14 +213,31 @@ inline void c_putch(uint8_t c, uint8_t devno = CDEV_SCREEN) {
 
 //  改行
 //  devno : デバイス番号 0:メインスクリーン 1:シリアル 2:グラフィック 3:、メモリー 4:ファイル
-inline void newline(uint8_t devno=CDEV_SCREEN) {
+void newline(uint8_t devno=CDEV_SCREEN) {
  if (devno== CDEV_SCREEN ) {
+#if USE_SCREEN == 1
   if (flgEdit) {
     sc.newLine();        // メインスクリーンへの文字出力
   } else {
-    c_putch(13); //CR
-    c_putch(10); //LF    
+    int16_t x,y;
+    getyx(y,x);
+    if (y>=MCURSES_LINES-1) {
+      scroll();
+      move(y,0);
+    } else {
+      move(y+1,0);  
+    }
   }
+#else
+  int16_t x,y;
+  getyx(y,x);
+  if (y>=MCURSES_LINES-1) {
+    scroll();
+    move(y,0);
+  } else {
+    move(y+1,0);  
+  }
+#endif
  } else if (devno == CDEV_MEMORY ) {
     mem_putch('\n'); // メモリーへの文字列出力
  }
@@ -350,7 +410,8 @@ char sstyle(unsigned char code,
 #define spacebifValue(c) sstyle(c, i_sb_if_value, sizeof(i_sb_if_value))  // 後ろが変数、数値、定数の場合、後ろに空白を空ける中間コードか
 
 // Error messages (フラッシュメモリ配置)
-unsigned char err;// Error message index
+uint8_t err;           // Error message index
+int16_t errorLine = -1;  // 直前のエラー発生行番号
 KW(e00,"OK");
 KW(e01,"Devision by zero");
 KW(e02,"Overflow");
@@ -521,9 +582,12 @@ inline uint8_t checkClose() {
 //
 uint8_t* v2realAddr(uint16_t vadr) {
   uint8_t* radr = NULL; 
+#if USE_SCREEN == 1
   if (vadr < sc.getScreenByteSize()) {   // VRAM領域
     radr = vadr+sc.getScreen();
-  } else if ((vadr >= V_VAR_TOP) && (vadr < V_ARRAY_TOP)) { // 変数領域
+  } else
+#endif
+  if ((vadr >= V_VAR_TOP) && (vadr < V_ARRAY_TOP)) { // 変数領域
     radr = vadr-V_VAR_TOP+(uint8_t*)var;
   } else if ((vadr >= V_ARRAY_TOP) && (vadr < V_PRG_TOP)) { // 配列領域
     radr = vadr - V_ARRAY_TOP+(uint8_t*)arr;
@@ -548,10 +612,10 @@ uint16_t hex2value(char c) {
 
 // 文字列出力
 inline void c_puts(const char *s, uint8_t devno=0) {
-  uint8_t prev_curs = sc.IsCurs();
-  if (prev_curs) sc.show_curs(0);
+  uint8_t prev_curs = c_IsCurs();
+  if (prev_curs) c_show_curs(0);
   while (*s) c_putch(*s++, devno); //終端でなければ出力して繰り返す
-  if (prev_curs) sc.show_curs(1);
+  if (prev_curs) c_show_curs(1);
 }
 
 // PROGMEM参照バージョン
@@ -773,28 +837,210 @@ int16_t iwlen(uint8_t flgZen=0) {
   return wlen;
 }
 
+// バッファ内の指定位置の文字を削除する
+void line_delCharAt(uint8_t* str, uint8_t pos) {
+  uint8_t len = strlen(str); // 文字列長さ 
+  if (pos == len-1) {
+    // 行末の場合
+     str[pos] = 0;
+   } else {
+    memmove(&str[pos], &str[pos+1],len-1-pos); 
+    str[len-1] = 0;
+  }
+}
+
+// バッファ内の指定位置に文字を挿入する
+void line_insCharAt(uint8_t* str, uint8_t pos,uint8_t c) {
+  uint8_t len = strlen(str); // 文字列長さ 
+  if (len >= SIZE_LINE-1)
+    return;
+    
+  if (pos == len) {
+    // 行末の場合
+     str[pos] = c;
+     str[pos+1] = 0;
+   } else {
+    memmove(&str[pos+1], &str[pos],len-pos);
+    str[pos] = c;
+    str[len+1] = 0;
+  }
+}
+
+// カーソルを１文字前に移動
+void line_movePrevChar(uint8_t* str, uint8_t ln, uint8_t& pos) {
+  uint8_t len = strlen(str); // 文字列長さ 
+  if (pos > 0) {
+    pos--;
+  }
+  if (pos > 0 && isZenkaku(lbuf[pos-1])) {
+    // 全角文字の2バイト目の場合、全角1バイト目にカーソルを移動する
+    pos--;
+  }
+  move(ln,pos+1);
+}
+
+// カーソルを１文字次に移動
+void line_moveNextChar(uint8_t* str, uint8_t ln, uint8_t& pos) {
+  uint8_t len = strlen(str); // 文字列長さ 
+  if (pos < len ) {
+    pos++;
+  }
+  if (pos < len && isZenkaku(lbuf[pos-1])) {
+    // 全角文字の2バイト目の場合、全角1バイト目にカーソルを移動する
+    pos++;
+  }
+  move(ln,pos+1);  
+}
+
+// ラインエディタ内容の再表示
+void line_redrawLine(uint8_t ln,uint8_t pos,uint8_t len) {
+  move(ln,0);
+  deleteln();
+  c_putch('>');
+  c_puts(lbuf);
+  move(ln,pos+1);  
+}
+
 void c_gets() {
-  uint8_t c; //文字
-  uint8_t len; //文字数
-  len = 0; //文字数をクリア
-  while ((c = c_getch()) != 13) { //改行でなければ繰り返す
-    if (c == 9) c = ' '; //［Tab］キーは空白に置き換える
-    //［BackSpace］キーが押された場合の処理（行頭ではないこと）
-    if (((c == 8) || (c == 127)) && (len > 0)) {
-      if (len-1 >0) {
-        if (isZenkaku(lbuf[len-2])) {
-          len--;
-          c_putch(8); c_putch(' '); c_putch(8); //文字を消す      
+  uint8_t x,y;
+  uint8_t c;               // 文字
+  uint8_t len = 0;         // 文字数
+  uint8_t pos = 0;         // 文字位置
+  int16_t line_index = -1; // リスト参照
+  int16_t tempindex;
+  uint8_t *text;
+  int16_t value, tmp;
+
+  getyx(y,x);
+  strcpy(tbuf,lbuf);
+  memset(lbuf,0,SIZE_LINE);
+  //SSerial.print(F("[DEBUG] tbuf="));
+  //SSerial.println(tbuf);
+  while ((c = c_getch()) != SC_KEY_CR) { //改行でなければ繰り返す
+    if (c == SC_KEY_TAB) {  // [TAB]キー
+      if  (len == 0) {
+        if (errorLine > 0) {
+          // 空白の場合は、直前のエラー発生行の内容を表示する
+          text = tlimR(getLineStr(errorLine));
+        } else {
+          text = tlimR(tbuf);          
         }
-      } 
-      len--; //文字数を1減らす
-      c_putch(8); c_putch(' '); c_putch(8); //文字を消す      
-    } else
-    //表示可能な文字が入力された場合の処理（バッファのサイズを超えないこと）
-    if (c>=32 && (len < (SIZE_LINE - 1))) {
-      lbuf[len++] = c; //バッファへ入れて文字数を1増やす
-      c_putch(c); //表示
+        if (text) {
+          // 指定した行が存在する場合は、その内容を表示する
+          strcpy(lbuf,text);
+          pos = 0;
+          len = strlen(lbuf);
+          line_redrawLine(y,pos,len);
+        } else {
+          c_beep();
+        }   
+      } else if (len) {
+        // 先頭に数値を入力している場合は、行の内容を表示する
+        text = lbuf;
+        value = 0; //定数をクリア
+        tmp   = 0; //変換過程の定数をクリア
+        if (c_isdigit(*text)) { //もし文字が数字なら
+           do { //次の処理をやってみる
+              tmp = 10 * value + *text++ - '0'; //数字を値に変換
+              if (value > tmp) { // もし前回の値より小さければ
+                value = -1;
+                break;
+               }
+               value = tmp;
+            } while (c_isdigit(*text)); //文字が数字である限り繰り返す
+         }
+         if (value >0) {
+            //SSerial.print(F("[DEBUG] value="));
+            //SSerial.println(value,DEC);
+            text = tlimR(getLineStr(value));
+            if (text) {
+              // 指定した行が存在する場合は、その内容を表示する
+              strcpy(lbuf,text);
+              pos = 0;
+              len = strlen(lbuf);
+              line_redrawLine(y,pos,len);
+              line_index = value;
+            } else {
+              c_beep();
+            }
+         }
+      }
+    } else if ( (c == SC_KEY_BACKSPACE) && (len > 0) && (pos > 0) ) { // [BS]キー
+      if (pos > 1 && isZenkaku(lbuf[pos-2])) {
+        // 全角文字の場合、2文字削除
+        pos-=2;
+        len-=2;
+        line_delCharAt(lbuf, pos);
+        line_delCharAt(lbuf, pos);
+      } else {      
+        len--; pos--;
+        line_delCharAt(lbuf, pos);
+      }
+      line_redrawLine(y,pos,len);
+    } else if ( (c == SC_KEY_DC) && (len > 0) && (pos < len) ) {     // [Delete]キー
+      if (isZenkaku(lbuf[pos])) {
+        // 全角文字の場合、2文字削除
+        line_delCharAt(lbuf, pos);
+        len--;
+      }
+      line_delCharAt(lbuf, pos);
+      len--;
+      line_redrawLine(y,pos,len);      
+    } else if (c == SC_KEY_LEFT && pos > 0) {                // ［←］: カーソルを前の文字に移動
+      line_movePrevChar(lbuf,y,pos);
+    } else if (c == SC_KEY_RIGHT && pos < len) {             // ［→］: カーソルを次の文字に移動
+      line_moveNextChar(lbuf,y,pos);
+    } else if (  (c == SC_KEY_PPAGE || c == SC_KEY_UP )   || // ［PageUP］: 前の行のリストを表示
+                 (c == SC_KEY_NPAGE || c == SC_KEY_DOWN ) ){ // ［PageDown］: 次の行のリストを表示 
+      if (line_index == -1) {
+        line_index = getlineno(listbuf);
+        tempindex = line_index;
+      } else {
+        if (c == SC_KEY_PPAGE || c == SC_KEY_UP)
+          tempindex = getPrevLineNo(line_index);
+        else 
+          tempindex = getNextLineNo(line_index);
+      }
+      if (tempindex > 0) {
+        line_index = tempindex;
+        text = tlimR(getLineStr(line_index));
+        strcpy(lbuf,text);
+        pos = 0;
+        len = strlen(lbuf);
+        line_redrawLine(y,pos,len);
+      } else {
+        pos = 0; len = 0;
+        memset(lbuf,0,SIZE_LINE);
+        line_redrawLine(y,pos,len);
+      }
+    } else if (c == SC_KEY_HOME ) { // [HOME]キー
+       pos = 0;
+       move(y,1);
+    } else if (c == SC_KEY_END ) {  // [END]キー
+       pos = len;
+       move(y,pos+1);
+    } else if (c == SC_KEY_F1 ) {   // [F1]キー(画面クリア)
+       icls();
+       pos = 0; len = 0;
+       getyx(y,x);
+       memset(lbuf,0,SIZE_LINE);
+       c_putch('>');
+    } else if (c == SC_KEY_F2 ) {   // [F2]キー(ラインクリア)
+       pos = 0; len = 0;
+       memset(lbuf,0,SIZE_LINE);
+       line_redrawLine(y,pos,len);
+    } else if (c>=32 && (len < (SIZE_LINE - 1))) { //表示可能な文字が入力された場合の処理（バッファのサイズを超えないこと）      
+      line_insCharAt(lbuf,pos,c);
+      insch(c);
+      pos++;len++;
     }
+/*
+    SSerial.print(F("[DEBUG] pos="));
+    SSerial.print(pos,DEC);
+    SSerial.print(F(" len="));
+    SSerial.print(len,DEC);
+    SSerial.println();
+*/
   }
   newline(); //改行
   lbuf[len] = 0; //終端を置く
@@ -905,16 +1151,20 @@ int16_t getnum() {
     //［BackSpace］キーが押された場合の処理（行頭ではないこと）
     if (((c == SC_KEY_BACKSPACE) || (c == SC_KEY_DC)) && (len > 0)) {
       len--; //文字数を1減らす
+#if USE_SCREEN == 1
       sc.movePosPrevChar();
       sc.delete_char();
+#else
+      c_putch(SC_KEY_BACKSPACE); c_putch(' '); c_putch(SC_KEY_BACKSPACE); //文字を消す
+#endif
     } else
     //行頭の符号および数字が入力された場合の処理（符号込みで6桁を超えないこと）
     if ((len == 0 && (c == '+' || c == '-')) ||
       (len < 6 && c_isdigit(c))) {
       lbuf[len++] = c; //バッファへ入れて文字数を1増やす
       c_putch(c); //表示
-    } else {
-      sc.beep();
+    } else {      
+      c_beep();
     }
   }
   newline(); //改行
@@ -1851,7 +2101,12 @@ void iwstr(uint8_t devno=CDEV_SCREEN) {
 
 // 画面クリア
 void icls() {
+#if USE_SCREEN == 1
   sc.cls();
+#else
+  clear();
+  move(0,0);
+#endif
   err=0;
 }
 
@@ -2006,7 +2261,7 @@ void iinput() {
   int16_t ofvalue;        // オーバーフロー時の設定値
   uint8_t flgofset =0;    // オーバーフロ時の設定値指定あり
 
-  sc.show_curs(1);
+  c_show_curs(1);
   prompt = 1;       // まだプロンプトを表示していない
 
   // プロンプトが指定された場合の処理
@@ -2099,7 +2354,7 @@ void iinput() {
     goto DONE;
   } // 中間コードで分岐の末尾
 DONE:  
-  sc.show_curs(0);
+  c_show_curs(0);
 }
 
 // LET handler
@@ -2593,9 +2848,13 @@ void irenum() {
 // スクリーンエディタのON/OFF
 void iedit() {
   int16_t mode;
-
   if ( getParam(mode, 0, 1, false) ) return;
   flgEdit = mode;
+  if (mode) {
+    setscrreg(0,7);
+  } else {
+    setscrreg(0,MCURSES_LINES-1);
+  }
   icls();
 }
 
@@ -2717,15 +2976,19 @@ void ilocate() {
   int16_t x,  y;
   if ( getParam(x, true) ) return;
   if ( getParam(y, false) ) return;
-  if ( x >= sc.getWidth() )   // xの有効範囲チェック
-     x = sc.getWidth() - 1;
+  if ( x >= c_getWidth() )   // xの有効範囲チェック
+     x = c_getWidth() - 1;
   else if (x < 0)  x = 0;  
-  if( y >= sc.getHeight() )   // yの有効範囲チェック
-     y = sc.getHeight() - 1;
+  if( y >= c_getHeight() )   // yの有効範囲チェック
+     y = c_getHeight() - 1;
   else if(y < 0)   y = 0;
 
   // カーソル移動
+#if USE_SCREEN == 1  
   sc.locate((uint16_t)x, (uint16_t)y);
+#else
+  move(y,x);
+#endif
 }
 
 // 文字色の指定 COLOLR fc,bc
@@ -2737,14 +3000,32 @@ void icolor() {
     if ( getParam(bc, 0, 8, false) ) return;  
  }
   // 文字色の設定
+#if USE_SCREEN == 1
   sc.setColor((uint16_t)fc, (uint16_t)bc);  
+#else
+  static const uint16_t tbl_fcolor[]  =
+     { F_BLACK,F_RED,F_GREEN,F_BROWN,F_BLUE,F_MAGENTA,F_CYAN,A_NORMAL,F_YELLOW};
+  static const uint16_t tbl_bcolor[]  =
+     { B_BLACK,B_RED,B_GREEN,B_BROWN,B_BLUE,B_MAGENTA,B_CYAN,B_WHITE,B_YELLOW};
+
+  if ( fc <= 8 && bc <= 8 )
+     attrset(tbl_fcolor[fc]|tbl_bcolor[bc]);  // 依存関数
+#endif
 }
 
 // 文字属性の指定 ATTRコマンド
 void iattr() {
   int16_t attr;
   if ( getParam(attr, 0, 4, false) ) return;
+#if USE_SCREEN == 1
   sc.setAttr(attr); 
+#else
+  static const uint16_t tbl_attr[]  =
+    { A_NORMAL, A_UNDERLINE, A_REVERSE, A_BLINK, A_BOLD };  
+  if ( getParam(attr, 0, 4, false) ) return;
+  if ( attr <= 4 )
+     attrset(tbl_attr[attr]);  // 依存関数
+#endif
 }
 
 // キー入力文字コードの取得 INKEY()関数
@@ -3252,7 +3533,7 @@ unsigned char* iexe() {
     case I_DOUT:     idwrite();         break;  // OUT    
     case I_POUT:     ipwm();            break;  // PWM 
 
-    case I_LIST:     sc.show_curs(0); ilist();  sc.show_curs(1);break;  // LIST
+    case I_LIST:     c_show_curs(0); ilist();  c_show_curs(1);break;  // LIST
     case I_FILES:    ifiles();          break;
     case I_ERASE:    ierase();          break; 
     case I_NEW:      inew();            break;   // NEW
@@ -3299,7 +3580,7 @@ uint8_t icom() {
   cip = ibuf; // 中間コードポインタを中間コードバッファの先頭に設定
   switch (*cip++) { // 中間コードポインタが指し示す中間コードによって分岐
   case I_LOAD: iload();   break;  // LOAD命令を実行
-  case I_RUN:   sc.show_curs(0); irun();  sc.show_curs(1);   break; // RUN命令
+  case I_RUN:   c_show_curs(0); irun();  c_show_curs(1);   break; // RUN命令
   case I_RENUM: irenum(); break; // RENUMの場合  
   case I_EDIT:iedit(); break;    // EDITの場合
   case I_CLS: icls();
@@ -3308,9 +3589,9 @@ uint8_t icom() {
   case I_OK:    rc = 0;     break; // I_OKの場合
   default: //どれにも該当しない場合
     cip--;
-    sc.show_curs(0);  
+    c_show_curs(0);  
     iexe(); //中間コードを実行
-    sc.show_curs(1);  
+    c_show_curs(1);  
     break; //打ち切る
   }
   return rc;
@@ -3319,14 +3600,15 @@ uint8_t icom() {
 // エラーメッセージ出力
 // 引数: dlfCmd プログラム実行時 false、コマンド実行時 true
 void error(uint8_t flgCmd = false) {
-  sc.show_curs(0);
+  c_show_curs(0);
   if (err) { //もし「OK」ではなかったら
     //もしプログラムの実行中なら（cipがリストの中にあり、clpが末尾ではない場合）
     if (cip >= listbuf && cip < listbuf + SIZE_LIST && *clp && !flgCmd) {
       // エラーメッセージを表示      
       c_puts_P((const char*)pgm_read_word(&errmsg[err]));
       c_puts_P((const char*)F(" in "));
-      putnum(getlineno(clp), 0); // 行番号を調べて表示
+      errorLine = getlineno(clp);
+      putnum(errorLine, 0); // 行番号を調べて表示
       newline();
 
       // リストの該当行を表示
@@ -3335,6 +3617,7 @@ void error(uint8_t flgCmd = false) {
       putlist(clp + 3);          
       newline();
     } else {
+      errorLine = -1;
       c_puts_P((const char*)pgm_read_word(&errmsg[err]));
       newline();
     }
@@ -3342,7 +3625,7 @@ void error(uint8_t flgCmd = false) {
   c_puts_P((const char*)pgm_read_word(&errmsg[0])); //「OK」を表示
   newline();                                        // 改行
   err = 0;                                          // エラー番号をクリア
-  sc.show_curs(1); 
+  c_show_curs(1); 
 }
 
 /*
@@ -3353,8 +3636,19 @@ void error(uint8_t flgCmd = false) {
 void basic() {
   unsigned char len; //中間コードの長さ
   char* textline;    // 入力行
-
+  //SSerial.begin(9600);
+  //SSerial.println(F("[DEBUG] Start."));
+#if USE_SCREEN == 1 
   sc.init(SC_CW,SC_CH,LINELEN, NULL);  // スクリーンの初期化
+#else
+  // mcursesの設定
+  setFunction_putchar(Arduino_putchar);  // 依存関数
+  setFunction_getchar(Arduino_getchar);  // 依存関数
+  initscr();                             // 依存関数
+  setscrreg(0,MCURSES_LINES);
+#endif
+  if (!flgEdit)
+    setscrreg(0,MCURSES_LINES-1);
 
 #if USE_CMD_VFD == 1 
   VFD.begin();       // VFDドライバ
@@ -3363,7 +3657,7 @@ void basic() {
   Wire.begin();      // I2C利用開始  
 #endif  
   inew(); //実行環境を初期化
-
+  icls(); //画面クリア
   //起動メッセージ
   c_puts_P((const char*)F("TOYOSHIKI TINY BASIC")); //「TOYOSHIKI TINY BASIC」を表示
   newline(); //改行
@@ -3376,7 +3670,7 @@ void basic() {
   // リセット時に指定PINがHIGHの場合、プログラム自動起動
   if (digitalRead(AutoPin)) {
     // ロードに成功したら、プログラムを実行する
-    sc.show_curs(0);        // カーソル非表示
+    c_show_curs(0);        // カーソル非表示
     iload(1);               // プログラムのロード
     irun();                 // RUN命令を実行
     newline();              // 改行
@@ -3385,8 +3679,9 @@ void basic() {
   }
 
   //端末から1行を入力して実行
-  sc.show_curs(1);
+  c_show_curs(1);
   while (1) { //無限ループ
+#if USE_SCREEN == 1
     if (flgEdit) {
       sc.edit();
       textline = (char*)sc.getText(); // スクリーンバッファからテキスト取得
@@ -3402,12 +3697,17 @@ void basic() {
     } else {
       c_putch('>'); //プロンプトを表示
       c_gets();
-      if(!strlen(lbuf))
-        continue;
+      if(!strlen(lbuf))        continue;
     }
+#else
+    c_putch('>'); //プロンプトを表示
+    c_gets();
+    if(!strlen(lbuf))        continue;
+#endif
     //1行の文字列を中間コードの並びに変換
     len = toktoi(); //文字列を中間コードに変換して長さを取得
     if (err) { //もしエラーが発生したら
+      clp = NULL;
       error(); //エラーメッセージを表示してエラー番号をクリア
       continue; //繰り返しの先頭へ戻ってやり直し
     }
