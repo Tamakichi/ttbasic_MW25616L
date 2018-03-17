@@ -3,6 +3,11 @@
  (C)2012 Tetsuya Suzuki
  */
 
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// 2018/03/01 by たま吉さん 
+//
+
 void basic(void);
 
 void setup(void){

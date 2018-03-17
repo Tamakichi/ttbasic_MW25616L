@@ -245,7 +245,10 @@ int16_t TI2CEPPROM::countFiles() {
 //  0:正常終了 ,1～4:I2Cデバイス異常
 ////////////////////////////////////////////////////
 uint8_t TI2CEPPROM::getDevName(uint8_t* devname) {
-  return  this->read(POS_VOLUME, devname, SZ_VOLUME);
+  uint8_t rc;
+  memset(devname,0,SZ_VOLUME+1);
+  rc =this->read(POS_VOLUME, devname, SZ_VOLUME);
+  return  rc;
 }
 
 //////////////////////////////////////////////////
