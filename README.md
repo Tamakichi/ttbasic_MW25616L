@@ -6,7 +6,7 @@
 ​	オリジナル版配布サイト <https://github.com/vintagechips/ttbasic_arduino>  
 ​		関連情報 [電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版](https://vintagechips.wordpress.com/2015/12/06/%E8%B1%8A%E5%9B%9B%E5%AD%A3%E3%82%BF%E3%82%A4%E3%83%8B%E3%83%BCbasic%E7%A2%BA%E5%AE%9A%E7%89%88/)   
 
-![image/screen.png](image/screen.png)  
+![image/screen.png](image/screen01.png)  
 
 
 **対応ハードウェア**
