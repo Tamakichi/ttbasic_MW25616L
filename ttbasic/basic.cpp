@@ -19,6 +19,7 @@
 //  修正 2018/03/01 スクリーンエディタの廃止
 //  修正 2018/03/13 ABS関数で-32768はOverflowエラーに修正,整数値の有効範囲修正(toktoi()の修正)
 //  修正 2018/03/13 WLEN()をLEN()に変更,LEN()をBYTE()に変更
+//  修正 2018/03/19 16進数定数の不具合修正
 //  修正 2018/03/19 IR()関数の追加(NEC方式 赤外線リモコン受信)
 //
 
@@ -674,9 +675,9 @@ uint16_t hex2value(char c) {
   if (c <= '9' && c >= '0')
     c -= '0';
   else if (c <= 'f' && c >= 'a')
-    c = c - 'a' + 10;
+    c = c + 10 - 'a';
   else if (c <= 'F' && c >= 'A')
-    c - c - 'A' + 10;
+    c = c + 10 - 'A' ;
   return c;
 }
 
@@ -1217,8 +1218,9 @@ unsigned char toktoi() {
         hex = 0;              // 定数をクリア
         hcnt = 0;             // 桁数
         do { //次の処理をやってみる
-          hex = (hex<<4) + hex2value(*s++); // 数字を値に変換
+          hex = (hex<<4) | hex2value(*s++); // 数字を値に変換
           hcnt++;
+
         } while (isHexadecimalDigit(*s));   // 16進数文字がある限り繰り返す
 
         if (hcnt > 4) {      // 桁溢れチェック
@@ -1230,6 +1232,7 @@ unsigned char toktoi() {
           err = ERR_IBUFOF;         // エラー番号をセット
           return 0;                 // 0を持ち帰る
         }
+
         len--;    // I_DALLARを置き換えるために格納位置を移動
         ibuf[len++] = I_HEXNUM;  //中間コードを記録
         ibuf[len++] = hex & 255; //定数の下位バイトを記録
