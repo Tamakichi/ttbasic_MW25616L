@@ -19,6 +19,7 @@
 //  修正 2018/03/01 スクリーンエディタの廃止
 //  修正 2018/03/13 ABS関数で-32768はOverflowエラーに修正,整数値の有効範囲修正(toktoi()の修正)
 //  修正 2018/03/13 WLEN()をLEN()に変更,LEN()をBYTE()に変更
+//  修正 2018/03/19 IR()関数の追加(NEC方式 赤外線リモコン受信)
 //
 
 #include <Arduino.h>
@@ -55,6 +56,10 @@ void igetTime();
 char* getLineStr(int16_t lineno);
 void iprint(uint8_t devno=0,uint8_t nonewln=0);
 void idelete(); 
+
+#if USE_IR == 1
+uint32_t Read_IR(uint8_t pinNo,uint16_t tm) ;
+#endif
 
 //***  TOYOSHIKI TinyBASIC 利用ワークメモリサイズ等定義 ***
 #define LINELEN   64          // 1行の文字数
@@ -254,7 +259,9 @@ KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE");KW(k139,"C
 #if USE_ANADEF == 1
 KW(k143,"A0");KW(k144,"A1");KW(k145,"A2");KW(k146,"A3");KW(k147,"A4");KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
 #endif
-
+#if USE_IR == 1
+KW(k151,"IR");
+#endif
 KW(k071,"OK");
 
 // キーワードテーブル(並び位置が中間コードになることに注意）
@@ -301,6 +308,9 @@ const char*  const kwtbl[] PROGMEM = {
 #endif
 #if USE_ANADEF == 1
   k143,k144,k145,k146,k147,k148,k149,k150,
+#endif
+#if USE_IR == 1
+  k151,                                              // "IR"
 #endif
   k071,                                              // "OK"
 };
@@ -352,6 +362,9 @@ enum {
 #if USE_ANADEF == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
 #endif
+#if USE_IR == 1
+  I_IR,
+#endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
   I_EOL
@@ -384,6 +397,9 @@ const PROGMEM unsigned char i_nsa[] = {
   I_LSB, I_MSB,I_CW, I_CH,  
 #if USE_ANADEF == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
+#endif
+#if USE_IR == 1
+  I_IR,
 #endif
 };
 
@@ -2969,7 +2985,6 @@ void ishiftOut() {
   shiftOut(dataPin, clockPin, bitOrder, data);
 }
 
-
 // TONE 周波数 [,音出し時間]
 void itone() {
   int16_t freq;   // 周波数
@@ -3171,6 +3186,33 @@ int16_t ipulseIn() {
   
   return rc;
 }
+#if USE_IR == 1
+// IR関数  IR(ピン番号[,リピート])
+int16_t iir() {
+  static int16_t code = 0; // ボタンコード
+  int16_t pinno;           // ピン番号
+  int16_t rpt = 1;         // リピート機能
+  uint32_t rc;
+
+  if (checkOpen()) return 0;                              // '('のチェック
+  if (getParam(pinno, 0,21, false)) return 0;             // ピン
+  if (*cip == I_COMMA) {
+    cip++;
+    if (getParam(rpt,0, 1, false)) return 0;              // リピート機能
+  }
+  if (checkClose()) return 0;                             // ')'のチェック
+
+  pinMode(pinno,INPUT);
+  rc = Read_IR(pinno,100);  // IR受信
+  if (rc > 0 && rc <= 3 )
+    code = -rc;
+  else if (rpt == 0 && rc == 0)
+    code = -1;
+  else if (rc)
+    code = (rc >>8)&0xff;
+  return code;
+}
+#endif
 
 #if USE_CMD_I2C == 1 && USE_RTC_DS3231 == 1
 #define BCD(c) (uint8_t)((c/10)*16+(c%10))
@@ -4080,6 +4122,9 @@ int16_t ivalue() {
   case I_SHIFTIN: value = ishiftIn(); break; // SHIFTIN()関数
   case I_PULSEIN: value = ipulseIn(); break; // PLUSEIN()関数
   case I_MAP:     value = imap();     break; // 関数MAP(V,L1,H1,L2,H2)
+#if USE_IR == 1
+  case I_IR:      value = iir();     break;  // IR(ピン番号)
+#endif
 #if USE_GRADE == 1
   case I_GRADE:   value = igrade();   break; // 関数GRADE(値,配列番号,配列データ数)
 #endif
@@ -4119,7 +4164,7 @@ int16_t ivalue() {
     if (getParam(value,0,21, false)) break;
     if (checkClose()) break;
     value = analogRead(value);    // 入力値取得
-    break;
+    break;  
   
   case I_OUTPUT:   value = OUTPUT;         break; 
   case INPUT_PU:   value = INPUT_PULLUP;   break;
