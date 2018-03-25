@@ -12,6 +12,7 @@
 **対応ハードウェア**
 
 - Arduino Unoおよびその互換機（Arduino Nano、Pro Minoにも対応）
+- Arduino MEGA2560及びその互換機
 - MW25616L実験用表示モジュール用デモプログラム
 
 

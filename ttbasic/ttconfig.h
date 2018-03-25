@@ -17,12 +17,26 @@
  */
 
 // ** 利用ピン設定 **********************************************************
-#define   TonePin 8  // Tone用出力ピン（圧電スピーカー接続）
-#define   AutoPin 7  // 自動起動チェックピン
+#ifdef ARDUINO_AVR_MEGA2560
+  // Arduino MEGA2560
+  #define   TonePin 49  // Tone用出力ピン（圧電スピーカー接続）
+  #define   AutoPin 53  // 自動起動チェックピン
+#else
+  // Arduino Uno/nano/pro mini
+  #define   TonePin 8  // Tone用出力ピン（圧電スピーカー接続）
+  #define   AutoPin 7  // 自動起動チェックピン
+#endif
 
 // ** プログラム領域サイズ ***************************************************
-#define   PRGAREASIZE 1024 // プログラム領域サイズ(512 ～ 1024 デフォルト:1024)
-
+#ifdef ARDUINO_AVR_MEGA2560
+  // Arduino MEGA2560
+  #define   PRGAREASIZE 2048 // プログラム領域サイズ(Arduino Mega 512 ～ 4096 デフォルト:2048)
+  #define   ARRYSIZE    100  // 配列領域
+#else
+  // Arduino Uno/nano/pro mini
+  #define   PRGAREASIZE 1024 // プログラム領域サイズ(Arduino Uno  512 ～ 1024 デフォルト:1024)
+  #define   ARRYSIZE    16   // 配列領域
+#endif
 // ** 機能利用オプション設定 *************************************************
 #define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
@@ -33,7 +47,7 @@
 #define USE_GRADE      1  // GRADE関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
-#define USE_ANADEF     1  // アナログピン定数A0～A7(0:利用しない 1:利用する デフォルト:1)
+#define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
 #define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
 #endif
 

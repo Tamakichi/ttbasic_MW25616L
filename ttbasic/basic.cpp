@@ -21,6 +21,9 @@
 //  修正 2018/03/13 WLEN()をLEN()に変更,LEN()をBYTE()に変更
 //  修正 2018/03/19 16進数定数の不具合修正
 //  修正 2018/03/19 IR()関数の追加(NEC方式 赤外線リモコン受信)
+//  修正 2018/03/21 Arduino Mega2560暫定対応
+//  修正 2018/03/23 全角判定不具合修正(isJMS()で厳密判定)
+//  修正 2018/03/24 Arduino Mega2560対応
 //
 
 #include <Arduino.h>
@@ -29,7 +32,7 @@
 
 //*** 機器依存識別 ****************************
 #define STR_EDITION "ARDUINO"
-#define STR_VARSION "Extended version 0.05"
+#define STR_VARSION "Extended version 0.06"
 #define MYSIGN      "TBU5" // EPPROM識別用シグニチャ
 
 //*** デバッグ用 *******************************
@@ -38,7 +41,7 @@
 SoftwareSerial SSerial(10, 11); 
 #endif
 
-//***  環境設定ファイル *************************
+//*** 環境設定ファイル **************************
 #include "ttconfig.h"          
 
 #if USE_SO1602AWWB == 1
@@ -67,7 +70,7 @@ uint32_t Read_IR(uint8_t pinNo,uint16_t tm) ;
 #define SIZE_LINE 64          // コマンドラインテキスト有効長さ
 #define SIZE_IBUF 64          // 行当たりの中間コード有効サイズ
 #define SIZE_LIST PRGAREASIZE // BASICプログラム領域サイズ
-#define SIZE_ARRY 16          // 配列利用可能数 @(0)～@(定義数-1)
+#define SIZE_ARRY ARRYSIZE    // 配列利用可能数 @(0)～@(定義数-1)
 #define SIZE_GSTK 6           // GOSUB stack size(2/nest)
 #define SIZE_LSTK 15          // FOR stack size(5/nest)
 
@@ -164,17 +167,44 @@ void newline(uint8_t devno=CDEV_SCREEN) {
 
 // *** 内部EEPROMフラッシュメモリ管理 ***************
 #include <avr/eeprom.h>
-#if PRGAREASIZE <= 512
-  #define EEPROM_PAGE_NUM         2      // 全ページ数
-  #define EEPROM_PAGE_SIZE        512    // ページ内バイト数
-  #define EEPROM_SAVE_NUM         2      // プログラム保存可能数
-#elif PRGAREASIZE <= 1024
-  #define EEPROM_PAGE_NUM         1      // 全ページ数
-  #define EEPROM_PAGE_SIZE        1024   // ページ内バイト数
-  #define EEPROM_SAVE_NUM         1      // プログラム保存可能数
+#ifdef ARDUINO_AVR_MEGA2560
+  #if PRGAREASIZE <= 512
+    #define EEPROM_PAGE_NUM         8      // 全ページ数
+    #define EEPROM_PAGE_SIZE        512    // ページ内バイト数
+    #define EEPROM_SAVE_NUM         8      // プログラム保存可能数
+  #elif PRGAREASIZE <= 1024
+    #define EEPROM_PAGE_NUM         4      // 全ページ数
+    #define EEPROM_PAGE_SIZE        1024   // ページ内バイト数
+    #define EEPROM_SAVE_NUM         5      // プログラム保存可能数
+  #elif PRGAREASIZE <= 2048
+    #define EEPROM_PAGE_NUM         2      // 全ページ数
+    #define EEPROM_PAGE_SIZE        2048   // ページ内バイト数
+    #define EEPROM_SAVE_NUM         2      // プログラム保存可能数
+  #elif PRGAREASIZE <= 4096
+    #define EEPROM_PAGE_NUM         1      // 全ページ数
+    #define EEPROM_PAGE_SIZE        4096   // ページ内バイト数
+    #define EEPROM_SAVE_NUM         1      // プログラム保存可能数
+  #endif
+#else
+  #if PRGAREASIZE <= 512
+    #define EEPROM_PAGE_NUM         2      // 全ページ数
+    #define EEPROM_PAGE_SIZE        512    // ページ内バイト数
+    #define EEPROM_SAVE_NUM         2      // プログラム保存可能数
+  #elif PRGAREASIZE <= 1024
+    #define EEPROM_PAGE_NUM         1      // 全ページ数
+    #define EEPROM_PAGE_SIZE        1024   // ページ内バイト数
+    #define EEPROM_SAVE_NUM         1      // プログラム保存可能数
+  #endif
 #endif
 
 // **** GPIOピンに関する定義 ***********************
+// ピン数の定義
+#ifdef ARDUINO_AVR_MEGA2560
+ #define TT_MAX_PINNUM 69
+#else
+ #define TT_MAX_PINNUM 21
+#endif 
+
 #define IsPWM_PIN(N) IsUseablePin(N,FNC_PWM)      // 指定ピンPWM利用可能判定
 #define IsADC_PIN(N) IsUseablePin(N,FNC_ANALOG)   // 指定ピンADC利用可能判定
 #define IsIO_PIN(N)  IsUseablePin(N,FNC_IN_OUT)   // 指定ピンデジタル入出力利用可能判定
@@ -184,12 +214,25 @@ void newline(uint8_t devno=CDEV_SCREEN) {
 #define FNC_PWM     2  // PWM
 #define FNC_ANALOG  4  // アナログIN
 
-// ピン機能チェックテーブル ターミナルコンソールのみ利用環境
+#ifdef ARDUINO_AVR_MEGA2560
+// Arduino Mrga2560 ピン機能チェックテーブル
+const PROGMEM uint8_t  pinFunc[] = {
+  0,0,1,1|2,1|2,1|2,1|2,1|2,1|2,1|2,        // ポート0 -  9: 
+  1|2,1|2,1|2,1|2,1,1,1,1,1,1,              // ポート10 - 19: 
+  1,1,1,1,1,1,1,1,1,1,                      // ポート20 - 29: 
+  1,1,1,1,1,1,1,1,1,1,                      // ポート30 - 39: 
+  1,1,1,1,1|2,1|2,1|2,1,1,1,                // ポート40 - 49:   
+  1,1,1,1,1|4,1|4,1|4,1|4,1|4,1|4,          // ポート50 - 59: 
+  1|4,1|4,1|4,1|4,1|4,1|4,1|4,1|4,1|4,1|4,  // ポート60 - 69:  
+};
+#else
+// Arduino Uno/nano/Pro mini ピン機能チェックテーブル
 const PROGMEM uint8_t  pinFunc[] = {
   0,0,1,1|2,1,1|2,1|2,1,1,1|2,          // ポート0 -  9: 
   1|2,1|2,1,1,1|4,1|4,1|4,1|4,1|4,1|4,  // ポート10 - 19: 
   1|4,1|4,
 };
+#endif
 
 // ピン利用可能チェック
 inline uint8_t IsUseablePin(uint8_t pinno, uint8_t fnc) {
@@ -259,9 +302,12 @@ KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE");KW(k139,"C
 #endif
 #if USE_ANADEF == 1
 KW(k143,"A0");KW(k144,"A1");KW(k145,"A2");KW(k146,"A3");KW(k147,"A4");KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
+  #ifdef ARDUINO_AVR_MEGA2560
+    KW(k151,"A8");KW(k152,"A9");KW(k153,"A10");KW(k154,"A11");KW(k155,"A12");KW(k156,"A13");KW(k157,"A14");KW(k158,"A15");
+  #endif
 #endif
 #if USE_IR == 1
-KW(k151,"IR");
+KW(k159,"IR");
 #endif
 KW(k071,"OK");
 
@@ -308,10 +354,13 @@ const char*  const kwtbl[] PROGMEM = {
   k135,k136,k137,k138,k139,k140,                     // "CPRINT","CCLS","CCURS","CLOCATE","CCONS","CDISP";  
 #endif
 #if USE_ANADEF == 1
-  k143,k144,k145,k146,k147,k148,k149,k150,
+  k143,k144,k145,k146,k147,k148,k149,k150,           // "A0","A1","A2","A3","A4","A5","A6","A7",
+  #ifdef ARDUINO_AVR_MEGA2560
+    k151,k152,k153,k154,k155,k156,k157,k158,k158,    // "A8","A9","A10","A11","A12","A13","A14","A15",
+  #endif
 #endif
 #if USE_IR == 1
-  k151,                                              // "IR"
+  k159,                                              // "IR"
 #endif
   k071,                                              // "OK"
 };
@@ -340,7 +389,7 @@ enum {
   I_BYTE, I_LEN, I_ASC,
   I_COLOR, I_ATTR, I_LOCATE, I_INKEY,
   I_GPIO, I_DOUT, I_POUT,
-  I_OUTPUT, INPUT_PU, I_INPUT_FL,
+  I_OUTPUT, I_INPUT_PU, I_INPUT_FL,
   I_OFF, I_ON, I_DIN, I_ANA, I_LOW, I_HIGH,
   I_RENUM,
   I_TONE, I_NOTONE,
@@ -362,6 +411,9 @@ enum {
 #endif
 #if USE_ANADEF == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
+  #ifdef ARDUINO_AVR_MEGA2560
+    I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
+  #endif  
 #endif
 #if USE_IR == 1
   I_IR,
@@ -388,7 +440,7 @@ const PROGMEM unsigned char i_nsa[] = {
 #endif
   I_INKEY,
   I_LEN, I_BYTE, I_ASC,
-  I_OUTPUT, INPUT_PU,I_INPUT_FL,
+  I_OUTPUT, I_INPUT_PU,I_INPUT_FL,
   I_OFF, I_ON, I_DIN, I_ANA,
   I_SYSINFO,
   I_MEM, /*I_VRAM,*/ I_MVAR, I_MARRAY,I_MPRG,
@@ -398,6 +450,9 @@ const PROGMEM unsigned char i_nsa[] = {
   I_LSB, I_MSB,I_CW, I_CH,  
 #if USE_ANADEF == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
+  #ifdef ARDUINO_AVR_MEGA2560
+    I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
+  #endif  
 #endif
 #if USE_IR == 1
   I_IR,
@@ -443,6 +498,9 @@ const PROGMEM unsigned char i_sb_if_value[] = {
   I_LSB, I_MSB,I_CW, I_CH,  
 #if USE_ANADEF == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
+  #ifdef ARDUINO_AVR_MEGA2560
+    I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
+  #endif 
 #endif
 };
 
@@ -536,7 +594,6 @@ enum {
 
 // RAM mapping
 char lbuf[SIZE_LINE];              // Command line buffer
-//char tbuf[SIZE_LINE];              // テキスト表示用バッファ
 int16_t lbuf_pos = 0;
 unsigned char ibuf[SIZE_IBUF];     // i-code conversion buffer
 short var[26];                     // Variable area
@@ -958,16 +1015,43 @@ void line_insCharAt(uint8_t* str, uint8_t pos,uint8_t c) {
   }
 }
 
+// http://katsura-kotonoha.sakura.ne.jp/prog/c/tip00010.shtml
+//*********************************************************
+// 文字列 str の str[nPos] について、
+//   ０ …… １バイト文字
+//   １ …… ２バイト文字の一部（第１バイト）
+//   ２ …… ２バイト文字の一部（第２バイト）
+// のいずれかを返す。
+//*********************************************************
+#define jms1(c) (((0x81<=c)&&(c<=0x9F))||((0xE0<=c)&&(c<=0xFC))) 
+#define jms2(c) ((0x7F!=c)&&(0x40<=c)&&(c<=0xFC))
+int isJMS( uint8_t *str, uint16_t nPos ) {
+  int i;
+  int state; // { 0, 1, 2 }
+
+  state = 0;
+  for( i = 0; str[i] != '\0'; i++ ) {
+    if      ( ( state == 0 ) && ( jms1( str[i] ) ) ) state = 1; // 0 -> 1
+    else if ( ( state == 1 ) && ( jms2( str[i] ) ) ) state = 2; // 1 -> 2
+    else if ( ( state == 2 ) && ( jms1( str[i] ) ) ) state = 1; // 2 -> 1
+    else                                             state = 0; // 2 -> 0, その他
+    // str[nPos] での状態を返す。
+    if ( i == nPos ) return state;
+  }
+  return 0;
+}
+
 // カーソルを１文字前に移動
 void line_movePrevChar(uint8_t* str, uint8_t ln, uint8_t& pos) {
   uint8_t len = strlen(str); // 文字列長さ 
   if (pos > 0) {
     pos--;
   }
-  if (pos > 0 && isZenkaku(lbuf[pos-1])) {
+//  if (pos > 0 && isZenkaku(lbuf[pos-1])) {
+  if ( (pos-2 >= 0) && (isJMS(lbuf,pos-1) !=2) ) {
     // 全角文字の2バイト目の場合、全角1バイト目にカーソルを移動する
     pos--;
-  }
+  } 
   move(ln,pos+1);
 }
 
@@ -2696,6 +2780,36 @@ void iformat() {
     err = ERR_VALUE;
     return;
   }
+#elif PRGAREASIZE <= 2048
+  if ( getParam(devsize, 4, 64, false) ) return;  
+  if (devsize == 4) {
+    fnum = 1;
+  } else if (devsize == 8) {
+    fnum = 3;
+  } else if (devsize == 16) {
+    fnum = 7;
+  } else if (devsize == 32) {
+    fnum = 15;
+  } else if (devsize == 64) {
+    fnum = 31;
+  } else {
+    err = ERR_VALUE;
+    return;
+  }
+#elif PRGAREASIZE <= 4096
+  if ( getParam(devsize, 4, 64, false) ) return;  
+ if (devsize == 8) {
+    fnum = 1;
+  } else if (devsize == 16) {
+    fnum = 3;
+  } else if (devsize == 32) {
+    fnum = 7;
+  } else if (devsize == 64) {
+    fnum = 15;
+  } else {
+    err = ERR_VALUE;
+    return;
+  }
 #endif
     // ファイル名の取得
    if (*cip == I_COMMA) {
@@ -2922,11 +3036,11 @@ int16_t iinkey() {
 // GPIO ピン機能設定
 void igpio() {
   int16_t pinno;  // ピン番号
-  uint32_t pmode; // 入出力モード
+  int16_t pmode;  // 入出力モード
 
   // 入出力ピンの指定
-  if ( getParam(pinno, 0, 21, true) ) return; // ピン番号取得
-  pmode = iexp();  if(err) return ;           // 入出力モードの取得
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return; // ピン番号取得
+  if ( getParam(pmode, 0, 2, false) ) return;            // 入出力モードの取得
 
   // デジタル入出力として利用可能かチェック
   if (!IsIO_PIN(pinno)) {
@@ -2940,8 +3054,8 @@ void igpio() {
 void idwrite() {
   int16_t pinno,  data;
 
-  if ( getParam(pinno, 0, 21, true) ) return; // ピン番号取得
-  if ( getParam(data, false) ) return;        // データ指定取得
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return; // ピン番号取得
+  if ( getParam(data, false) ) return;                   // データ指定取得
   data = data ? HIGH: LOW;
 
   if (! IsIO_PIN(pinno)) {
@@ -2959,8 +3073,8 @@ void ipwm() {
   int16_t pinno;      // ピン番号
   int16_t duty;       // デューティー値 0～255
 
-  if ( getParam(pinno, 0, 21, true) ) return;    // ピン番号取得
-  if ( getParam(duty,  0, 255, false) ) return;  // デューティー値
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return;    // ピン番号取得
+  if ( getParam(duty,  0, 255, false) ) return;             // デューティー値
 
   // PWMピンとして利用可能かチェック
   if (!IsPWM_PIN(pinno)) {
@@ -2976,8 +3090,8 @@ void ishiftOut() {
   int16_t bitOrder;
   int16_t data;
 
-  if (getParam(dataPin, 0,21, true)) return;
-  if (getParam(clockPin,0,21, true)) return;
+  if (getParam(dataPin, 0,TT_MAX_PINNUM, true)) return;
+  if (getParam(clockPin,0,TT_MAX_PINNUM, true)) return;
   if (getParam(bitOrder,0,1, true)) return;
   if (getParam(data, 0,255,false)) return;
 
@@ -3095,6 +3209,7 @@ int16_t ii2cr() {
   int16_t  i2cAdr, sdtop, sdlen,rdtop,rdlen;
   uint8_t* sdptr;
   uint8_t* rdptr;
+  int16_t tm = 0;
   int16_t  rc;
   int16_t  n;
 
@@ -3122,6 +3237,8 @@ int16_t ii2cr() {
   if (rdlen) {
     if (rc!=0)
       return rc;
+  if (tm) 
+    delay(tm); 
     n = Wire.requestFrom(i2cAdr, rdlen);
     while (Wire.available()) {
       *(rdptr++) = Wire.read();
@@ -3153,8 +3270,8 @@ int16_t ishiftIn() {
   int16_t lgc = HIGH;
 
   if (checkOpen()) return 0;
-  if (getParam(dataPin, 0,21, true)) return 0;
-  if (getParam(clockPin,0,21, true)) return 0;
+  if (getParam(dataPin, 0,TT_MAX_PINNUM, true)) return 0;
+  if (getParam(clockPin,0,TT_MAX_PINNUM, true)) return 0;
   if (getParam(bitOrder,0,1, false)) return 0;
   if (*cip == I_COMMA) {
     cip++;
@@ -3175,7 +3292,7 @@ int16_t ipulseIn() {
 
   // コマンドライン引数の取得
   if (checkOpen()) return 0;                              // '('のチェック
-  if (getParam(dataPin, 0,21, true)) return 0;            // ピン
+  if (getParam(dataPin, 0,TT_MAX_PINNUM, true)) return 0; // ピン
   if (getParam(mode, LOW, HIGH, true)) return 0;          // 検出モード
   if (getParam(tmout,0,32767, false)) return 0;           // タイムアウト時間(ミリ秒)
   if (*cip == I_COMMA) {
@@ -3198,7 +3315,7 @@ int16_t iir() {
   uint32_t rc;
 
   if (checkOpen()) return 0;                              // '('のチェック
-  if (getParam(pinno, 0,21, false)) return 0;             // ピン
+  if (getParam(pinno, 0,TT_MAX_PINNUM, false)) return 0;  // ピン
   if (*cip == I_COMMA) {
     cip++;
     if (getParam(rpt,0, 1, false)) return 0;              // リピート機能
@@ -4153,7 +4270,7 @@ int16_t ivalue() {
       
   case I_DIN: // DIN(ピン番号)
     if (checkOpen()) break;
-    if (getParam(value,0,21, false)) break;
+    if (getParam(value,0,TT_MAX_PINNUM, false)) break;
     if (checkClose()) break;
     if ( !IsIO_PIN(value) ) {
       err = ERR_GPIO;
@@ -4164,13 +4281,13 @@ int16_t ivalue() {
 
   case I_ANA: // ANA(ピン番号)
     if (checkOpen()) break;
-    if (getParam(value,0,21, false)) break;
+    if (getParam(value,0,TT_MAX_PINNUM, false)) break;
     if (checkClose()) break;
     value = analogRead(value);    // 入力値取得
     break;  
   
   case I_OUTPUT:   value = OUTPUT;         break; 
-  case INPUT_PU:   value = INPUT_PULLUP;   break;
+  case I_INPUT_PU: value = INPUT_PULLUP;   break;
   case I_INPUT_FL: value = INPUT;          break;
 
   // 定数
@@ -4202,7 +4319,11 @@ int16_t ivalue() {
 
   default: //以上のいずれにも該当しなかった場合
     cip--;
+#ifdef ARDUINO_AVR_MEGA2560
+    if (*cip >= I_A0 && *cip <=I_A15) {
+#else
     if (*cip >= I_A0 && *cip <=I_A7) {
+#endif
        value = 14 +  (*cip-I_A0);
        cip++;
     } else {   

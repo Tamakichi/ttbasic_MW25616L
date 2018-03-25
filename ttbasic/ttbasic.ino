@@ -8,6 +8,8 @@
 // 2018/03/01 by たま吉さん 
 //
 
+//*** 環境設定ファイル **************************
+#include "ttconfig.h"     
 void basic(void);
 
 void setup(void){
