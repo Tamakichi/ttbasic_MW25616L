@@ -24,6 +24,7 @@
 //  修正 2018/03/21 Arduino Mega2560暫定対応
 //  修正 2018/03/23 全角判定不具合修正(isJMS()で厳密判定)
 //  修正 2018/03/24 Arduino Mega2560対応
+//  修正 2018/03/25 Arduino Mega2560のA0～A7のピン番号割り付け不具合の対応
 //
 
 #include <Arduino.h>
@@ -4321,10 +4322,11 @@ int16_t ivalue() {
     cip--;
 #ifdef ARDUINO_AVR_MEGA2560
     if (*cip >= I_A0 && *cip <=I_A15) {
+       value = 54 +  (*cip-I_A0);
 #else
     if (*cip >= I_A0 && *cip <=I_A7) {
-#endif
        value = 14 +  (*cip-I_A0);
+#endif
        cip++;
     } else {   
       err = ERR_SYNTAX; //エラー番号をセット

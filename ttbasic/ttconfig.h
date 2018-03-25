@@ -46,7 +46,7 @@
 #define USE_CMD_VFD    0  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_I2CEEPROM  1  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:1)
-#define USE_SYSINFO    0  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
+#define USE_SYSINFO    1  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
 #define USE_GRADE      1  // GRADE関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
