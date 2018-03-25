@@ -14,7 +14,7 @@ void basic(void);
 
 void setup(void){
   // put your setup code here, to run once:
-  Serial.begin(115200);
+  Serial.begin(SERIALBAUD);
   randomSeed(analogRead(0));
 }
 
