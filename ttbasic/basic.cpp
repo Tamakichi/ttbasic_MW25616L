@@ -25,6 +25,7 @@
 //  修正 2018/03/23 全角判定不具合修正(isJMS()で厳密判定)
 //  修正 2018/03/24 Arduino Mega2560対応
 //  修正 2018/03/25 Arduino Mega2560のA0～A7のピン番号割り付け不具合の対応
+//  修正 2018/03/27 "INPUT_PU"のスペルミス対応
 //
 
 #include <Arduino.h>
@@ -278,7 +279,7 @@ KW(k048,"CHR$"); KW(k050,"HEX$"); KW(k051,"BIN$"); KW(k072,"STR$");
 KW(k074,"BYTE"); KW(k075,"LEN"); KW(k076,"ASC");
 KW(k052,"COLOR"); KW(k053,"ATTR"); KW(k054,"LOCATE"); KW(k055,"INKEY");
 KW(k078,"GPIO"); KW(k079,"OUT"); KW(k080,"POUT");
-KW(k081,"OUTPUT"); KW(k082,"INPUT_PD"); KW(k083,"INPUT_FL");
+KW(k081,"OUTPUT"); KW(k082,"INPUT_PU"); KW(k083,"INPUT_FL");
 KW(k084,"OFF"); KW(k085,"ON"); KW(k086,"IN"); KW(k087,"ANA"); KW(k088,"LOW"); KW(k089,"HIGH");
 KW(k090,"RENUM");
 KW(k091,"TONE"); KW(k092,"NOTONE");
@@ -333,7 +334,7 @@ const char*  const kwtbl[] PROGMEM = {
   k074,k075,k076,                                    // "BYTE","LEN","ASC","WASC"
   k052,k053,k054,k055,                               // "COLOR","ATTR","LOCATE","INKEY"
   k078,k079,k080,                                    // "GPIO","OUT","POUT"
-  k081,k082,k083,                                    // "OUTPUT","INPUT_PD","INPUT_FL"
+  k081,k082,k083,                                    // "OUTPUT","INPUT_PU","INPUT_FL"
   k084,k085,k086,k087,k088,k089,                     // "OFF","ON","IN","ANA","LOW","HIGH"
   k090,                                              // "RENUM"
   k091,k092,                                         // "TONE","NOTONE"
