@@ -26,6 +26,8 @@
 //  修正 2018/03/24 Arduino Mega2560対応
 //  修正 2018/03/25 Arduino Mega2560のA0～A7のピン番号割り付け不具合の対応
 //  修正 2018/03/27 "INPUT_PU"のスペルミス対応
+//  修正 2018/08/31 BIN$()の不具合修正
+//  修正 2019/05/26 MML文演奏部をライブラリに置き換えた
 //
 
 #include <Arduino.h>
@@ -252,6 +254,30 @@ inline uint8_t IsUseablePin(uint8_t pinno, uint8_t fnc) {
 #if USE_CMD_I2C == 1 && USE_I2CEEPROM == 1
   #include "src/lib/TI2CEPPROM.h"
   TI2CEPPROM rom(0x50);
+#endif
+
+// **** PALYコマンドのサポート（オプション） ***
+#if USE_CMD_PLAY == 1
+  #include "src/lib/MML.h"
+  MML mml;             // MML文演奏管理
+
+  // デバイス初期化関数
+  void dev_toneInit() {
+  }
+
+  // 単音出力関数
+  void dev_tone(uint16_t freq, uint16_t tm, uint16_t vol) {
+    tone(TonePin,freq);
+    if (tm) {
+      delay(tm);
+      noTone(TonePin);
+    }
+  }
+
+  // 単音出力停止関数
+  void dev_notone() {
+    noTone(TonePin);
+  }
 #endif
 
 // *** 中間コード・キーワード定義 **************************
@@ -588,7 +614,7 @@ enum {
   ERR_CTR_C,
   ERR_VALUE,
   ERR_GPIO,
-  ERR_MML,
+  ERR_PLAY_MML,
   ERR_I2CDEV,
   ERR_FNAME,
   ERR_NOFSPACE,
@@ -781,7 +807,7 @@ void ihex(uint8_t devno=CDEV_SCREEN) {
 void putBinnum(int16_t value, uint8_t d, uint8_t devno=0) {
   uint16_t  bin = (uint16_t)value; // 符号なし16進数として参照利用する
   uint16_t  b;                     // 指定ビット位置の値(0 or 1)
-  uint16_t  dig = 1;               // 先頭が1から始まる桁数
+  uint16_t  dig = 0;               // 先頭が1から始まる桁数
 
   // 最初に1が現れる桁を求める
   for (uint8_t i=0; i < 16; i++) {
@@ -3630,248 +3656,26 @@ void iprint(uint8_t devno=0,uint8_t nonewln=0) {
 
 // *** サウンド(Tone/PLAY) *************************
 #if USE_CMD_PLAY == 1
-  uint16_t mml_Tempo   = 120; // テンポ(50～512)  
-  #define   mml_len   4       // 長さ(1,2,4,8,16,32)
-  #define   mml_oct   4       // 音の高さ(1～8)
-  
-  // note定義
-  const PROGMEM  uint16_t mml_scale[] = {
-    4186,  // C
-    4435,  // C#
-    4699,  // D
-    4978,  // D#
-    5274,  // E
-    5588,  // F
-    5920,  // F#
-    6272,  // G
-    6643, // G#
-    7040, // A
-    7459, // A#
-    7902, // B
-  };
-  
-  // mml_scaleテーブルのインデックス
-  #define MML_C_BASE 0
-  #define MML_CS_BASE 1
-  #define MML_D_BASE 2
-  #define MML_DS_BASE 3
-  #define MML_E_BASE 4
-  #define MML_F_BASE 5
-  #define MML_FS_BASE 6
-  #define MML_G_BASE 7
-  #define MML_GS_BASE 8
-  #define MML_A_BASE 9
-  #define MML_AS_BASE 10
-  #define MML_B_BASE 11
-
-  const PROGMEM  uint8_t mml_scaleBase[] = {
-    MML_A_BASE,MML_B_BASE,MML_C_BASE,MML_D_BASE,MML_E_BASE,MML_F_BASE,MML_G_BASE,
-  };
-
 
 // TEMPO テンポ
 void itempo() {
   int16_t tempo;  
   if ( getParam(tempo, 32, 500, false) ) return; // テンポの取得
-  mml_Tempo = tempo;
+  mml.tempo(tempo);
 }
 
 // PLAY 文字列
 void iplay() {
-  uint8_t* ptr = lbuf;
-  uint16_t freq;              // 周波数
-  uint16_t len = mml_len ;    // 共通長さ
-  uint8_t  oct = mml_oct ;    // 共通高さ
-
-  uint16_t local_len = mml_len ;    // 個別長さ
-  uint8_t  local_oct = mml_oct ;    // 個別高さ
-  
-  uint16_t tempo = mml_Tempo; // テンポ
-  int8_t  scale = 0;          // 音階
-  uint32_t duration;          // 再生時間(msec)
-  uint8_t flgExtlen = 0;
-  
   // 引数のMMLをバッファに格納する
   clearlbuf();
   iprint(CDEV_MEMORY,1);
   if (err)
     return;
-
-  // MMLの評価
-  while(*ptr) {
-    flgExtlen = 0;
-    local_len = len;
-    local_oct = oct;
-    
-    //強制的な中断の判定
-    if (isBreak())
-      return;
-
-    // 英字を大文字に統一
-    if (*ptr >= 'a' && *ptr <= 'z')
-       *ptr = 'A' + *ptr - 'a';
-
-    // 空白はスキップ    
-    if (*ptr == ' '|| *ptr == '&') {
-      ptr++;
-      continue;
-    }
-    // 音階記号
-    if (*ptr >= 'A' && *ptr <= 'G') {
-      scale = pgm_read_byte(&mml_scaleBase[*ptr-'A']); // 音階コードの取得        
-      ptr++;
-
-      // 半音上げ下げ
-      if (*ptr == '#' || *ptr == '+') {
-        // 半音上げる
-        if (scale < MML_B_BASE) {
-          scale++;
-        } else {
-          if (local_oct < 8) {
-            scale = MML_B_BASE;
-            local_oct++;
-          }
-        }
-        ptr++;
-      } else if (*ptr == '-') {
-        // 半音下げる
-        if (scale > MML_C_BASE) {
-          scale--;
-        } else {
-          if (local_oct > 1) {
-            scale = MML_B_BASE;
-            local_oct--;
-          }
-        }                
-        ptr++;      
-      } 
-
-      // 長さの指定
-      uint16_t tmpLen =0;
-      char* tmpPtr = ptr;
-      while(c_isdigit(*ptr)) {
-         tmpLen*= 10;
-         tmpLen+= *ptr - '0';
-         ptr++;
-      }
-      if (tmpPtr != ptr) {
-        // 長さ引数ありの場合、長さを評価
-        if ( (tmpLen==1)||(tmpLen==2)||(tmpLen==4)||(tmpLen==8)||(tmpLen==16)||(tmpLen==32)||(tmpLen==64) ) {
-          local_len = tmpLen;
-        } else {
-          err = ERR_MML; // 長さ指定エラー
-          return;
-        }
-      }    
-
-      // 半音伸ばし
-      if (*ptr == '.') {
-        ptr++;
-        flgExtlen = 1;
-      } 
-    
-      // 音階の再生
-      duration = 240000/tempo/local_len;  // 再生時間(msec)
-      if (flgExtlen)
-        duration += duration>>1;
-        
-      freq = pgm_read_word(&mml_scale[scale])>>(8-local_oct); // 再生周波数(Hz);  
-      tone(TonePin ,freq);  // 音の再生
-      delay(duration);
-      noTone(TonePin);
-    } else if (*ptr == 'L') {  // 長さの指定     
-      ptr++;
-      uint16_t tmpLen =0;
-      char* tmpPtr = ptr;
-      while(c_isdigit(*ptr)) {
-         tmpLen*= 10;
-         tmpLen+= *ptr - '0';
-         ptr++;
-      }
-      if (tmpPtr != ptr) {
-        // 長さ引数ありの場合、長さを評価
-        if ( (tmpLen==1)||(tmpLen==2)||(tmpLen==4)||(tmpLen==8)||(tmpLen==16)||(tmpLen==32)||(tmpLen==64) ) {
-          len = tmpLen;
-        } else {
-          err = ERR_MML; // 長さ指定エラー
-          return;
-        }
-      }   
-    } else if (*ptr == 'O') { // オクターブの指定
-      ptr++;
-      uint16_t tmpOct =0;
-      while(c_isdigit(*ptr)) {
-         tmpOct*= 10;
-         tmpOct+= *ptr - '0';
-         ptr++;
-      }
-      if (tmpOct < 1 || tmpOct > 8) {
-        err = ERR_MML; 
-        return;       
-      }
-      oct = tmpOct;
-    } else if (*ptr == 'R') { // 休符
-      ptr++;      
-      // 長さの指定
-      uint16_t tmpLen =0;
-      char* tmpPtr = ptr;
-      while(c_isdigit(*ptr)) {
-         tmpLen*= 10;
-         tmpLen+= *ptr - '0';
-         ptr++;
-      }
-      if (tmpPtr != ptr) {
-        // 長さ引数ありの場合、長さを評価
-        if ( (tmpLen==1)||(tmpLen==2)||(tmpLen==4)||(tmpLen==8)||(tmpLen==16)||(tmpLen==32)||(tmpLen==64) ) {
-          local_len = tmpLen;
-        } else {
-          err = ERR_MML; // 長さ指定エラー
-          return;
-        }
-      }       
-      if (*ptr == '.') {
-        ptr++;
-        flgExtlen = 1;
-      } 
-
-      // 休符の再生
-      duration = 240000/tempo/local_len;    // 再生時間(msec)
-      if (flgExtlen)
-        duration += duration>>1;
-      delay(duration);
-    } else if (*ptr == '<') { // 1オクターブ上げる
-      if (oct < 8) {
-        oct++;
-      }
-      ptr++;
-    } else if (*ptr == '>') { // 1オクターブ下げる
-      if (oct > 1) {
-        oct--;
-      }
-      ptr++;
-    } else if (*ptr == 'T') { // テンポの指定
-      ptr++;      
-      // 長さの指定
-      uint32_t tmpTempo =0;
-      char* tmpPtr = ptr;
-      while(c_isdigit(*ptr)) {
-         tmpTempo*= 10;
-         tmpTempo+= *ptr - '0';
-         ptr++;
-      }
-      if (tmpPtr == ptr) {
-        err = ERR_MML; 
-        return;        
-      }
-      if (tmpTempo < 32 || tmpTempo > 255) {
-        err = ERR_MML; 
-        return;                
-      }
-      tempo = tmpTempo;
-    } else {
-      err = ERR_MML; 
-      return;              
-    }
+  uint8_t* ptr = lbuf; // MML文格納アドレス先頭
+  mml.setText(ptr);
+  mml.play();
+  if (mml.isError()) {
+    err = ERR_PLAY_MML;
   }
 }
 #endif
@@ -3888,8 +3692,6 @@ void c_gets() {
   int16_t value, tmp;
 
   getyx(y,x);
-  //strcpy(tbuf,lbuf);
-  //memset(lbuf,0,SIZE_LINE);
   clearlbuf();
   while ((c = c_getch()) != KEY_CR) { //改行でなければ繰り返す
     if (c == KEY_TAB) {  // [TAB]キー
@@ -4613,6 +4415,11 @@ void basic() {
   Wire.begin();                      // I2C利用開始  
 #endif  
 
+#if USE_CMD_PLAY == 1
+  // MML初期化、デバイス依存関数の登録
+  mml.init(dev_toneInit, dev_tone, dev_notone);
+#endif
+
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   // OLEDキャラクタディスプレイ
   OLEDinit();
@@ -4672,4 +4479,3 @@ void basic() {
 
   } //無限ループの末尾
 }
-
