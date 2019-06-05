@@ -38,7 +38,7 @@
 #else
   // Arduino Uno/nano/pro mini
   #define   PRGAREASIZE 1024 // プログラム領域サイズ(Arduino Uno  512 ～ 1024 デフォルト:1024)
-  #define   ARRYSIZE    16   // 配列領域
+  #define   ARRYSIZE    32   // 配列領域
 #endif
 // ** 機能利用オプション設定 *************************************************
 #define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:1)
@@ -51,5 +51,5 @@
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
-#define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
+#define USE_SO1602AWWB 1  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
 #endif

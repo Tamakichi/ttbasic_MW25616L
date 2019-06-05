@@ -1,9 +1,10 @@
 //
-// TI2CEPPROM I2C接続EEPROMクラス 簡易ファイルシステム
-// 2018/02/25 by たま吉さん
+// TI2CEEPROM I2C接続EEPROMクラス 簡易ファイルシステム
+// 作成 2018/02/25 by たま吉さん
+// 修正 2019/05/28 by たま吉さん,スペルミスTI2CEPPROMをTI2CEEPROMに修正,gccワーニング修正
 //
 
-#include "TI2CEPPROM.h"
+#include "TI2CEEPROM.h"
 #include <Wire.h>
 
 #define BLKSIE        16 // 一回ごとのアクセスバイト数(I2Cのバッファ32バイト制限考慮)
@@ -23,12 +24,12 @@
 #define SZ_FNAME     14  // ファイル名バイト数
 
 // 16バイト迄の読み込み
-uint8_t TI2CEPPROM::read16(uint16_t addr, uint8_t* buf,uint16_t len) {
+uint8_t TI2CEEPROM::read16(uint16_t addr, uint8_t* buf,uint16_t len) {
   Wire.beginTransmission(_devaddr);
   Wire.write(addr >> 8);     // 上位アドレス
   Wire.write(addr & 0xff);   // 下位アドレス
   Wire.endTransmission(false);
-  Wire.requestFrom(_devaddr, (int)len);
+  Wire.requestFrom(_devaddr, (uint8_t)len);
   for (uint16_t i = 0; i < len ; i++ ,buf++) {
     *buf = Wire.read();         
   }
@@ -44,29 +45,29 @@ uint8_t TI2CEPPROM::read16(uint16_t addr, uint8_t* buf,uint16_t len) {
 // 戻り値
 //  0: 正常終了、1～4:I2Cデバイスエラー 
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::read(uint16_t addr, uint8_t* buf,uint16_t len) {
+uint8_t TI2CEEPROM::read(uint16_t addr, uint8_t* buf,uint16_t len) {
   uint8_t  rc;
   uint16_t cnt = len / BLKSIE; 
   uint16_t rst = len % BLKSIE;
-  uint16_t pos = 0;
+  //uint16_t pos = 0;
 
   // Wireのバッファサイズ対策のため、16バイト毎に読込を行う
   for (uint8_t i=0; i < cnt; i++, addr += BLKSIE,buf+=BLKSIE) {    
     // 16バイト読込トランザクション
-    if ( rc = this->read16(addr, buf, 16) )
+    if ( (rc = this->read16(addr, buf, 16)) )
       return rc;
   }
 
   // 16バイト未満の読み込み
   if (rst) {
-    if ( rc = this->read16(addr, buf, rst) )
+    if ( (rc = this->read16(addr, buf, rst)) )
       return rc;
   }
   return 0;
 }
 
 // 16バイト迄の書込み
-uint8_t TI2CEPPROM::write16(uint16_t addr, uint8_t* buf, uint16_t len) {
+uint8_t TI2CEEPROM::write16(uint16_t addr, uint8_t* buf, uint16_t len) {
   uint8_t  rc;
   Wire.beginTransmission(_devaddr);
   Wire.write(addr >> 8);     // 上位アドレス
@@ -87,22 +88,22 @@ uint8_t TI2CEPPROM::write16(uint16_t addr, uint8_t* buf, uint16_t len) {
 //  0: 正常終了、1～4:I2Cデバイスエラー 
 
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::write(uint16_t addr, uint8_t* buf, uint16_t len) {
+uint8_t TI2CEEPROM::write(uint16_t addr, uint8_t* buf, uint16_t len) {
   uint8_t  rc;
   uint16_t cnt = len / BLKSIE;
   uint16_t rst = len % BLKSIE;
-  uint16_t pos = 0;
+  //uint16_t pos = 0;
 
   // Wireのバッファサイズ対策のため、16バイト毎に読込を行う
   for (uint16_t i=0; i < cnt; i++,buf+=BLKSIE,addr+=BLKSIE) {
     // 16バイト書込みトランザクション
-    if ( rc = this->write16(addr,buf, 16) ) 
-      return rc;   
+    if ( (rc = this->write16(addr,buf, 16)) ) 
+      return rc;
   }
 
   // 16バイト未満書込みトランザクション
   if (rst) {
-    if ( rc = this->write16(addr,buf, rst) ) 
+    if ( (rc = this->write16(addr,buf, rst)) ) 
       return rc;
   }
   return 0;  
@@ -113,7 +114,7 @@ uint8_t TI2CEPPROM::write(uint16_t addr, uint8_t* buf, uint16_t len) {
 // 引数
 //  addr: I2Cスレーブアドレス
 ////////////////////////////////////////////////////
-TI2CEPPROM::TI2CEPPROM(uint8_t addr) {
+TI2CEEPROM::TI2CEEPROM(uint8_t addr) {
   //_sz = sz;         // EEPROM容量(単位 kバイト)
   _devaddr = addr;    // I2Cスレーブアドレス  
 }
@@ -128,18 +129,18 @@ TI2CEPPROM::TI2CEPPROM(uint8_t addr) {
 // 戻り値
 //  0: 正常終了, 1～4:I2Cデバイスエラー 
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::format(uint8_t* sign, uint8_t* devName, uint8_t numtable, uint16_t fsize) {
+uint8_t TI2CEEPROM::format(uint8_t* sign, uint8_t* devName, uint8_t numtable, uint16_t fsize) {
  uint8_t rc;
  uint16_t blksz = fsize / 256;                       // 最大ファイルサイズ
- 
+
  // ヘッダーの書込み
- if ( rc = this->write(POS_SIGN, sign, SZ_SIGN) )                    // シグニチャの書込み
+ if ( (rc = this->write(POS_SIGN, sign, SZ_SIGN)) )                    // シグニチャの書込み
    return rc;
- if ( rc = this->write(POS_VOLUME, devName, SZ_VOLUME) )             // デバイス名の書込み
+ if ( (rc = this->write(POS_VOLUME, devName, SZ_VOLUME)) )             // デバイス名の書込み
    return rc;
- if ( rc = this->write(POS_RCDNUM, (uint8_t*)&numtable, SZ_RCDNUM) ) // テーブル数の書込み
+ if ( (rc = this->write(POS_RCDNUM, (uint8_t*)&numtable, SZ_RCDNUM)) ) // テーブル数の書込み
    return rc;
- if ( rc = this->write(POS_BSIZE, (uint8_t*)&blksz, SZ_BSIZE) )      // ブロックサイズの書込み
+ if ( (rc = this->write(POS_BSIZE, (uint8_t*)&blksz, SZ_BSIZE)) )      // ブロックサイズの書込み
    return rc;
  
   // テーブルの初期化
@@ -147,7 +148,7 @@ uint8_t TI2CEPPROM::format(uint8_t* sign, uint8_t* devName, uint8_t numtable, ui
   memset(table, 0, FILEINFOSIZE);
   uint16_t addr = FILEINFOSIZE;
   for (uint16_t i = 0; i < numtable; i++) {
-    if ( rc = this->write(addr, table, FILEINFOSIZE) )  // テーブルの書込み
+    if ( (rc = this->write(addr, table, FILEINFOSIZE)) )  // テーブルの書込み
       return rc;
     addr+= FILEINFOSIZE;
   }
@@ -163,7 +164,7 @@ uint8_t TI2CEPPROM::format(uint8_t* sign, uint8_t* devName, uint8_t numtable, ui
 //   1: I2Cデバイスエラー
 //   2: シグニチャ不一致
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::checkSign(uint8_t* sign) {  
+uint8_t TI2CEEPROM::checkSign(uint8_t* sign) {  
   uint8_t rdSign[SZ_SIGN+1];
   memset(rdSign, 0, SZ_SIGN+1);
 
@@ -173,7 +174,7 @@ uint8_t TI2CEPPROM::checkSign(uint8_t* sign) {
   }
 
  // シグニチャの比較
- return strncmp(sign,rdSign, SZ_SIGN) ? 2:0;
+ return strncmp((char*)sign, (char*)rdSign, SZ_SIGN) ? 2:0;
 }
 
 ////////////////////////////////////////////////////
@@ -183,7 +184,7 @@ uint8_t TI2CEPPROM::checkSign(uint8_t* sign) {
 //  -1  : デバイスエラー
 //  0～ : テーブル数
 ////////////////////////////////////////////////////
-int16_t TI2CEPPROM::maxFiles() {
+int16_t TI2CEEPROM::maxFiles() {
   uint8_t rc;
   // テーブル数の読み込み
   if (this->read(POS_RCDNUM, &rc, SZ_RCDNUM)) {
@@ -199,7 +200,7 @@ int16_t TI2CEPPROM::maxFiles() {
 //  -1  : デバイスエラー
 //  0～ : ファイルサイズ
 ////////////////////////////////////////////////////
-int16_t TI2CEPPROM::pageSize() {
+int16_t TI2CEEPROM::pageSize() {
   uint8_t rc;
   // 最大ファイルサイズ(ページサイズ)の読み込み
   if (this->read(POS_BSIZE, &rc, SZ_BSIZE)) {
@@ -209,13 +210,13 @@ int16_t TI2CEPPROM::pageSize() {
 }
 
 ////////////////////////////////////////////////////
-// TI2CEPPROM::保存ファイル数の取得
+// TI2CEEPROM::保存ファイル数の取得
 // (事前にシグニチャチェックを行っていること)
 // 戻り値
 //  -1  : デバイスエラー
 //  0～ : ファイル数
 ////////////////////////////////////////////////////
-int16_t TI2CEPPROM::countFiles() {
+int16_t TI2CEEPROM::countFiles() {
   int16_t  num;
   uint8_t  flg;
   
@@ -225,7 +226,7 @@ int16_t TI2CEPPROM::countFiles() {
   
   // 保存ファイル数のカウント
   int16_t cnt = 0;
-  for (uint16_t i=0; i < num; i++) {
+  for (int16_t i=0; i < num; i++) {
     // ファイル状態のの読み込み
     if (this->read(HEADSIZE+FILEINFOSIZE*i, &flg, 1)) {
       return -1;
@@ -244,7 +245,7 @@ int16_t TI2CEPPROM::countFiles() {
 // 戻り値
 //  0:正常終了 ,1～4:I2Cデバイス異常
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::getDevName(uint8_t* devname) {
+uint8_t TI2CEEPROM::getDevName(uint8_t* devname) {
   uint8_t rc;
   memset(devname,0,SZ_VOLUME+1);
   rc =this->read(POS_VOLUME, devname, SZ_VOLUME);
@@ -260,7 +261,7 @@ uint8_t TI2CEPPROM::getDevName(uint8_t* devname) {
 //  -1  : デバイスエラー
 //  -2  : 該当なし
 ////////////////////////////////////////////////////
-int16_t TI2CEPPROM::find(uint8_t* fname) {
+int16_t TI2CEEPROM::find(uint8_t* fname) {
   int16_t  num, rc = -2;
   uint8_t  table[FILEINFOSIZE];
   
@@ -269,12 +270,12 @@ int16_t TI2CEPPROM::find(uint8_t* fname) {
     return -1;
   
   // テーブルの逐次比較
-  for (uint16_t i=0; i < num; i++) {
+  for (int16_t i=0; i < num; i++) {
     // ファイル状態のの読み込み
     if (this->read(HEADSIZE+FILEINFOSIZE*i, table, FILEINFOSIZE)) {
       return -1;
     }
-    if (strncmp(fname, table, SZ_FNAME) == 0) {
+    if (strncmp((char*)fname, (char*)table, SZ_FNAME) == 0) {
        rc = i;
        break;
     }
@@ -288,7 +289,7 @@ int16_t TI2CEPPROM::find(uint8_t* fname) {
 //  -1  : デバイスエラー
 //  -2  : 空きなし
 ////////////////////////////////////////////////////
-int16_t TI2CEPPROM::findEmpty() {
+int16_t TI2CEEPROM::findEmpty() {
   int16_t  num, rc = -2;
   uint8_t  table_top;
   
@@ -298,7 +299,7 @@ int16_t TI2CEPPROM::findEmpty() {
     return -1;
   
   // テーブルの逐次比較
-  for (uint16_t i=0; i < num; i++) {
+  for (int16_t i=0; i < num; i++) {
     // ファイル状態のの読み込み
     if (this->read(HEADSIZE + FILEINFOSIZE*i, &table_top, 1)) {
       return -1;
@@ -323,7 +324,7 @@ int16_t TI2CEPPROM::findEmpty() {
 //   1: I2Cデバイスエラー
 //   2: 該当ファイルなし
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::load(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len) {
+uint8_t TI2CEEPROM::load(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len) {
   int32_t index;
   int16_t  num, pageSize;  
 
@@ -343,7 +344,7 @@ uint8_t TI2CEPPROM::load(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len
     }
   }
   
-  if (this->read(HEADSIZE + FILEINFOSIZE * num + pageSize * index + pos, ptr, len)) {
+  if (this->read(HEADSIZE + FILEINFOSIZE * num + pageSize * index + (uint16_t)pos, ptr, len)) {
      return 1;
   }
   return 0;
@@ -362,7 +363,7 @@ uint8_t TI2CEPPROM::load(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len
 //   1: I2Cデバイスエラー
 //   2: 保存領域無し
 ////////////////////////////////////////////////
-uint8_t TI2CEPPROM::save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len, uint8_t ftyple) {
+uint8_t TI2CEEPROM::save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len, uint8_t ftyple) {
   int32_t  index;
   int16_t  num, pageSize;
 
@@ -391,15 +392,15 @@ uint8_t TI2CEPPROM::save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len
   }
 
   // データの保存
-  if (this->write(HEADSIZE + FILEINFOSIZE * num + pageSize * index + pos, ptr, len)) {
+  if (this->write(HEADSIZE + FILEINFOSIZE * num + pageSize * index + (uint16_t)pos, ptr, len)) {
      return 1;
   }
 
   // テーブルの更新
   uint8_t tmp[FILEINFOSIZE];
   memset(tmp,0,FILEINFOSIZE);
-  strcpy(tmp,fname);        // ファイル名
-  tmp[POS_FTYPE] = ftyple;  // ファイル種別
+  strcpy((char *)tmp,(char *)fname);        // ファイル名
+  tmp[POS_FTYPE] = ftyple;                  // ファイル種別
   if (this->write(HEADSIZE + FILEINFOSIZE * index, tmp, 16)) {
      return 1;
   }
@@ -415,7 +416,7 @@ uint8_t TI2CEPPROM::save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len
 //   1: I2Cデバイスエラー
 //   2: 該当ファイルなし
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::del(uint8_t* fname) {
+uint8_t TI2CEEPROM::del(uint8_t* fname) {
   int32_t index;
   int16_t  num;  
   uint8_t  table[FILEINFOSIZE];
@@ -447,7 +448,7 @@ uint8_t TI2CEPPROM::del(uint8_t* fname) {
 //   1: I2Cデバイスエラー
 //   2: 範囲指定外
 ////////////////////////////////////////////////////
-uint8_t TI2CEPPROM::getTable(uint8_t* table, uint8_t index) {
+uint8_t TI2CEEPROM::getTable(uint8_t* table, uint8_t index) {
   int16_t  num;
   uint16_t adr = HEADSIZE+FILEINFOSIZE*index;
 

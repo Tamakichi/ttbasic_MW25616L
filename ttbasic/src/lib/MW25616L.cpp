@@ -1,3 +1,6 @@
+// VFD MW252616L 制御ライブラリ
+// 最終更新日 2019/05/28 by たま吉さん
+
 #include "MW25616L.h"
 #include <avr/pgmspace.h>    //PROGMEM定義ライブラリ
 
@@ -82,7 +85,7 @@ void MW25616L::mw_digitalWrite(uint8_t pin, uint8_t val) {
 }
 
 // 1byteデータ書き込み
-void MW25616L::mw_put(unsigned char onebyte) {
+void MW25616L::mw_put(uint8_t onebyte) {
   mw_shiftOut(mw_si, mw_ck, LSBFIRST, onebyte) ;    //シフトアウト機能
 }
 
@@ -94,16 +97,13 @@ void MW25616L::wr_lat() {
 
 // 画面クリア
 void MW25616L::mw_clr() {
-  for (int i=0; i <= MW25616L_WIDTH; i++) {
-      mw_put(0x00);
-      mw_put(0x00);
-  }
+  disp_non(MW25616L_WIDTH);
   wr_lat();
 }
 
 // テーブルデータの連続書き込み
-void MW25616L::mw_put_t(uint8_t*  tablename,int dn) {    //dn=データ数
-  int k=0;
+void MW25616L::mw_put_t(uint8_t*  tablename,uint16_t dn) {    //dn=データ数
+  uint16_t k=0;
   while (k < dn) {
     mw_put(tablename[k]);
     k++;
@@ -112,9 +112,9 @@ void MW25616L::mw_put_t(uint8_t*  tablename,int dn) {    //dn=データ数
 
 // テーブルデータのスクロール表示
 // dn=データ数,ck=1:下段,2:上段,stime=スクロールスピード(delay_time)
-void MW25616L::mw_put_s(uint8_t* tablename, int dn,int stime) {
-  int k=0;
-  int j=0;
+void MW25616L::mw_put_s(uint8_t* tablename, uint16_t dn, uint16_t stime) {
+  uint16_t k=0;
+  uint16_t j=0;
   while (k < (dn/2)) {
     j= k * 2;
     mw_put(tablename[j]);
@@ -126,8 +126,8 @@ void MW25616L::mw_put_s(uint8_t* tablename, int dn,int stime) {
 }
 
 //空白表示（n:横ドット数）
-void MW25616L::disp_non(int n) {
-  int k = 0;
+void MW25616L::disp_non(uint16_t n) {
+  uint16_t k = 0;
   while (k < n) {
       mw_put(0x00);
       mw_put(0x00);
@@ -136,8 +136,8 @@ void MW25616L::disp_non(int n) {
 }
 
 //空白表示スクロール（n:横ドット数, t:停止時間）
-void MW25616L::disp_non_t(int n, int t) {
-  int k = 0;
+void MW25616L::disp_non_t(uint16_t n, uint16_t t) {
+  uint16_t k = 0;
   while (k < n) {
       mw_put(0x00);
       mw_put(0x00);
@@ -178,8 +178,7 @@ void MW25616L::display(uint8_t sw) {
    
 // VFDに16x16フォントを表示（1文字分のデータ送信のみ/LATなし）
 void MW25616L::dispFont16x16(uint8_t* matrixdata32) {
-  byte mdata = 0;
-  for (int i = 0; i < 16; i++)  {
+  for (uint8_t i = 0; i < 16; i++)  {
     mw_put(matrixdata32[i]);
     mw_put(matrixdata32[i + 16]);
   }
@@ -187,8 +186,7 @@ void MW25616L::dispFont16x16(uint8_t* matrixdata32) {
 
 // VFDに16x16フォントを表示（1文字分のデータ送信のみ/LATなし）*/
 void MW25616L::dispFont16x16d2(uint8_t* matrixdata32) {
-  byte mdata = 0;
-  for (int i = 0; i < 16; i++) {
+  for (uint8_t i = 0; i < 16; i++) {
     unsigned int fontdata1 = (matrixdata32[i+16] << 8) + (matrixdata32[i]);     //列=32bitデータに置換え
     fontdata1 = fontdata1 << 2;         //ROMフォントから2dot下へずらす
     mw_put(fontdata1);                  //下位バイト送信(文字の下半分)
@@ -197,9 +195,8 @@ void MW25616L::dispFont16x16d2(uint8_t* matrixdata32) {
 }
 
 // VFDに16x16フォントを表示（スクロール表示）
-void MW25616L::dispFont16x16s(uint8_t* matrixdata32, int t) {
-  byte mdata = 0;
-  for (int i = 0; i < 16; i++) {
+void MW25616L::dispFont16x16s(uint8_t* matrixdata32, uint16_t t) {
+  for (uint8_t i = 0; i < 16; i++) {
     mw_put(matrixdata32[i]);
     mw_put(matrixdata32[i + 16]);
     wr_lat();
@@ -208,10 +205,9 @@ void MW25616L::dispFont16x16s(uint8_t* matrixdata32, int t) {
 }
 
 // VFDに16x16フォントを表示（スクロール表示）
-void MW25616L::dispFont16x16sd2(uint8_t* matrixdata32, int t) {
-  byte mdata = 0;
-  for (int i = 0; i < 16; i++) {
-    unsigned int fontdata1 = (matrixdata32[i+16] << 8) + (matrixdata32[i]);     //列=32bitデータに置換え
+void MW25616L::dispFont16x16sd2(uint8_t* matrixdata32, uint16_t t) {
+  for (uint8_t i = 0; i < 16; i++) {
+    uint16_t fontdata1 = (matrixdata32[i+16] << 8) + (matrixdata32[i]);     //列=32bitデータに置換え
     fontdata1 = fontdata1 << 2;         //ROMフォントから2dot下へずらす
     mw_put(fontdata1);                  //下位バイト送信(文字の下半分)
     mw_put(fontdata1 >>8);              //上位バイト送信(文字の上半分)
@@ -222,9 +218,8 @@ void MW25616L::dispFont16x16sd2(uint8_t* matrixdata32, int t) {
 
 // VFDに8x16フォントを表示（1文字分のデータ送信のみ/LATなし）
 void MW25616L::dispFont8x16(uint8_t* matrixdata16) {
-  byte mdata = 0;
-  for (int i = 0; i < 8; i++) {
-    unsigned int fontdata1 = (matrixdata16[i+8] << 8) + (matrixdata16[i]);     //列=32bitデータに置換え
+  for (uint8_t i = 0; i < 8; i++) {
+    uint16_t fontdata1 = (matrixdata16[i+8] << 8) + (matrixdata16[i]);     //列=32bitデータに置換え
     fontdata1 = fontdata1 << 1;         //ROMフォントから1dot下へずらす
     mw_put(fontdata1);                  //下位バイト送信(文字の下半分)
     mw_put(fontdata1 >>8);              //上位バイト送信(文字の上半分)
@@ -232,10 +227,9 @@ void MW25616L::dispFont8x16(uint8_t* matrixdata16) {
 }
 
 // VFDに8x16フォントを表示（スクロール表示）
-void MW25616L::dispFont8x16s(uint8_t* matrixdata16, int t) {
-  byte mdata = 0;
-  for (int i = 0; i < 8; i++) {
-    unsigned int fontdata1 = (matrixdata16[i+8] << 8) + (matrixdata16[i]);     //列=32bitデータに置換え
+void MW25616L::dispFont8x16s(uint8_t* matrixdata16, uint16_t t) {
+  for (uint8_t i = 0; i < 8; i++) {
+    uint16_t fontdata1 = (matrixdata16[i+8] << 8) + (matrixdata16[i]);     //列=32bitデータに置換え
     fontdata1 = fontdata1 << 1;         //ROMフォントから1dot下へずらす
     mw_put(fontdata1);                  //下位バイト送信(文字の下半分)
     mw_put(fontdata1 >>8);              //上位バイト送信(文字の上半分)
@@ -245,7 +239,7 @@ void MW25616L::dispFont8x16s(uint8_t* matrixdata16, int t) {
 }
 
 // 1byteのSJISをスクロール表示する
-void MW25616L::dispSJIS1byte(uint16_t sjis, int t) {
+void MW25616L::dispSJIS1byte(uint16_t sjis, uint16_t t) {
   uint8_t matrixdata32[32];   //16×16用表示データ  
   
   /*読み出し*/
@@ -258,7 +252,7 @@ void MW25616L::dispSJIS1byte(uint16_t sjis, int t) {
 }
 
 // 2byteのSJISをスクロール表示する
-void MW25616L::dispSJIS2byte(uint16_t sjis, int t) {
+void MW25616L::dispSJIS2byte(uint16_t sjis, uint16_t t) {
   uint8_t matrixdata32[32];   //16×16用表示データ  
   uint16_t jis = FROM.SJIS2JIS(sjis);
 
@@ -280,7 +274,7 @@ void MW25616L::dispSJIS2byte(uint16_t sjis, int t) {
 }
 
 // SJISコードの文字列をVFDにスクロール表示する
-void MW25616L::dispSentence(const uint8_t* tablename,int t, uint8_t flgZ,uint8_t flgLat) {
+void MW25616L::dispSentence(const uint8_t* tablename,uint16_t t, uint8_t flgZ,uint8_t flgLat) {
   byte xcode = 0;
   uint16_t code1 = 0;
   uint16_t code2 = 0;
@@ -304,7 +298,7 @@ void MW25616L::dispSentence(const uint8_t* tablename,int t, uint8_t flgZ,uint8_t
       xcode = 0;
     }
   }
-  if(!t & flgLat)
+  if(!t && flgLat)
    wr_lat();
 }
 #if 0

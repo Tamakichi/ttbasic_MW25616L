@@ -1,10 +1,11 @@
 //
-// TI2CEPPROM I2C接続EEPROMクラス 簡易ファイルシステム
-// 2018/02/25 by たま吉さん
+// TI2CEEPROM I2C接続EEPROMクラス 簡易ファイルシステム
+// 作成 2018/02/25 by たま吉さん
+// 修正 2019/05/28 by たま吉さん,スペルミスTI2CEPPROMをTI2CEEPROMに修正,gccワーニング修正
 //
 
-#ifndef __TI2CEPPROM_H__
-#define __TI2CEPPROM_H__
+#ifndef __TI2CEEPROM_H__
+#define __TI2CEEPROM_H__
 
 /*
 このライブラリは、I2C接続EEPROMに簡易ファイルシステムを構築するためのものです。
@@ -67,28 +68,28 @@
 
 #include <Arduino.h>
 
-#define TI2CEPPROM_FSIZE    512  // デフォルトの１ファイルのサイズ(バイト)
-#define TI2CEPPROM_FNAMESIZ 14   // ファイル名長さ
+#define TI2CEEPROM_FSIZE    512  // デフォルトの１ファイルのサイズ(バイト)
+#define TI2CEEPROM_FNAMESIZ 14   // ファイル名長さ
 
-#define TI2CEPPROM_F_NONE    0   // ファイル種別:ブランク
-#define TI2CEPROM_F_PRG      1   // ファイル種別:プログラム
-#define TI2CEEPROM_F_PRG     2   // ファイル種別:データ
+#define TI2CEEPROM_F_NONE    0   // ファイル種別:ブランク
+#define TI2CEEPROM_F_PRG     1   // ファイル種別:プログラム
+#define TI2CEEPROM_F_DATA    2   // ファイル種別:データ
 
-class TI2CEPPROM {
+class TI2CEEPROM {
  private:
    uint8_t _devaddr;  // I2Cスレーブアドレス
 
  public:
-   TI2CEPPROM(uint8_t addr);                                              // コンストラクタ
+   TI2CEEPROM(uint8_t addr);                                              // コンストラクタ
    void setSlaveAddr(uint8_t addr) { _devaddr = addr;};                   // I2Cスレーブアドレスの設定
    uint8_t checkSign(uint8_t* sign);                                      // シグニチャのチェック
    int16_t pageSize();                                                    // ページサイズ(最大ファイル保存サイズ)の取得
    int16_t maxFiles();                                                    // 最大ファイル数の取得
    int16_t countFiles() ;                                                 // 保存ファイル数の取得
    uint8_t getDevName(uint8_t* devname);                                  // デバイス名の取得
-   uint8_t format(uint8_t* sign, uint8_t* devname,uint8_t numtable, uint16_t fsize=TI2CEPPROM_FSIZE); // EEPROMのフォーマット
+   uint8_t format(uint8_t* sign, uint8_t* devname,uint8_t numtable, uint16_t fsize=TI2CEEPROM_FSIZE); // EEPROMのフォーマット
    uint8_t load(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len); // データのロード
-   uint8_t save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len, uint8_t ftyple=TI2CEPROM_F_PRG); // データの保存
+   uint8_t save(uint8_t* fname, uint8_t* pos, uint8_t*ptr, uint16_t len, uint8_t ftyple=TI2CEEPROM_F_DATA); // データの保存
    uint8_t del(uint8_t* fname);                                           // ファイルの削除
    int16_t find(uint8_t* fname);                                          // ファイルを検索し、インデックスを返す
    int16_t findEmpty();                                                   // 空きテーブルのインデックスを返す

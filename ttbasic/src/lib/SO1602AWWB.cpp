@@ -1,5 +1,6 @@
 //
 // 有機ＥＬキャラクタディスプレイモジュール 制御関数
+// 最終更新日 2019/05/28 by たま吉さん
 //
 
 #include "SO1602AWWB.h"
@@ -34,7 +35,6 @@ uint8_t OLEDcontrast(int cont){
 // カーソル移動
 uint8_t OLEDPos(uint8_t x, uint8_t y) {
   uint8_t adr = 0x80+y*32+x;
-  uint8_t rc;
   Wire.beginTransmission(DEVADR);
   Wire.write(0x00); // データ送信
   Wire.write(adr);  // アドレス
@@ -44,28 +44,21 @@ uint8_t OLEDPos(uint8_t x, uint8_t y) {
 // 文字列の表示
 uint8_t OLEDprint(uint8_t* text) {
   Wire.beginTransmission(DEVADR);
-  Wire.write(0x40);               // Set DDRAM Address
-  Wire.write(text,strlen(text));  // 表示データ
+  Wire.write(0x40);                      // Set DDRAM Address
+  Wire.write(text,strlen((char*)text));  // 表示データ
   return Wire.endTransmission();
 }
 
 // 文字の表示
 uint8_t OLEDputch(uint8_t c) {
-  uint8_t rc;  
-
   Wire.beginTransmission(DEVADR);
   Wire.write(0x40);               // Set DDRAM Address
   Wire.write(c);                  // 表示データ
-  rc = Wire.endTransmission();   
-
-  //curs_x++;
-  return rc;
+  return Wire.endTransmission();
 }
 
 // 表示のクリア
 uint8_t OLEDcls() {
-  //curs_x = 0;
-  //curs_y = 0;
   Wire.beginTransmission(DEVADR);
   Wire.write(0x00); // データ送信
   Wire.write(0x01); // Clear Display (表示部をクリア）
