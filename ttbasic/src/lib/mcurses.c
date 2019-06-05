@@ -15,8 +15,9 @@
  */
 
 //
-// C³ 2018/01/30 ƒL[ƒR[ƒh‚Ì•ÏXi‘SŠp•¶šƒVƒtƒgJIS‘Î‰‚Ì‚½‚ßj
-// C³ 2018/02/14 Arduino(AVR)—pSRAM—˜—pÁ”ïŒyŒ¸‘Î‰
+// ä¿®æ­£ 2018/01/30 ã‚­ãƒ¼ã‚³ãƒ¼ãƒ‰ã®å¤‰æ›´ï¼ˆå…¨è§’æ–‡å­—ã‚·ãƒ•ãƒˆJISå¯¾å¿œã®ãŸã‚ï¼‰
+// ä¿®æ­£ 2018/02/14 Arduino(AVR)ç”¨SRAMåˆ©ç”¨æ¶ˆè²»è»½æ¸›å¯¾å¿œ
+// ä¿®æ­£ 2019/06/05 æœªå®Ÿè£…é–¢æ•°ã®å‘¼ã³å‡ºã—ã‚’å‰Šé™¤
 //
 
 #include <stdio.h>
@@ -88,11 +89,12 @@ static uint_fast8_t mcurses_phyio_init (void)
  * PHYIO: done (AVR)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
+/*
 static void mcurses_phyio_done (void)
 {
 	
 }
-
+*/
 static void mcurses_phyio_putc (uint_fast8_t ch)
 {
 	if(FunctionPointer_putchar!=0)	FunctionPointer_putchar(ch);
@@ -125,11 +127,12 @@ static void mcurses_phyio_halfdelay (uint_fast8_t tenths)
  * PHYIO: flush output (AVR)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
+/*
 static void mcurses_phyio_flush_output ()
 {
 	
 }
-
+*/
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * INTERN: put a character (raw)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -511,12 +514,13 @@ curs_set (uint_fast8_t visibility)
  * MCURSES: refresh: flush output
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
+/*
 void
 refresh (void)
 {
     mcurses_phyio_flush_output ();
 }
-
+*/
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: set/reset nodelay
  *---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -546,7 +550,7 @@ halfdelay (uint_fast8_t tenths)
  */
 
 #define MAX_KEYS    (23)
-#define KW(k,s) const char k[] PROGMEM=s  // ƒL[ƒ[ƒh’è‹`ƒ}ƒNƒ
+#define KW(k,s) const char k[] PROGMEM=s  // ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰å®šç¾©ãƒã‚¯ãƒ­
 KW(k00,"B");  KW(k01,"A");  KW(k02,"D");  KW(k03,"C");  KW(k04,"1~"); 
 KW(k05,"3~"); KW(k06,"2~"); KW(k07,"6~"); KW(k08,"5~"); KW(k09,"4~");
 KW(k10,"Z");  KW(k11,"11~");KW(k12,"12~");KW(k13,"13~");KW(k14,"14~");
@@ -591,7 +595,7 @@ getch (void) {
     uint_fast8_t ch;
     uint_fast8_t idx;
 
-    refresh ();
+    //refresh ();
     ch = mcurses_phyio_getc ();
 
     if (ch == 0x7F) {                                                           // BACKSPACE on VT200 sends DEL char
@@ -638,6 +642,7 @@ getch (void) {
  * MCURSES: read string (with mini editor built-in)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
+#if 0
 void
 getnstr (char * str, uint_fast8_t maxlen)
 {
@@ -720,7 +725,7 @@ getnstr (char * str, uint_fast8_t maxlen)
     }
     str[curlen] = '\0';
 }
-
+#endif
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: endwin
  *---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -733,7 +738,7 @@ endwin (void)
     mcurses_putc ('\017');                                                      // switch to G0 set
     curs_set (TRUE);                                                            // show cursor
     mcurses_puts_P(SEQ_REPLACE_MODE);                                           // reset insert mode
-    refresh ();                                                                 // flush output
-    mcurses_phyio_done ();                                                      // end of physical I/O
+    //refresh ();                                                                 // flush output
+    //mcurses_phyio_done ();                                                      // end of physical I/O
     mcurses_is_up = 0;
 }

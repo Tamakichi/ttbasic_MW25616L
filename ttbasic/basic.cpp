@@ -455,62 +455,60 @@ void c_puts_P(const char *s, uint8_t devno) {
 // 数値の入力
 // INPUT文から呼び出される
 int16_t getnum() {
-  int16_t value, tmp; // 値と計算過程の値
+  int16_t value = 0 , tmp = 0; // 値と計算過程の値
   char c;             // 文字
-  uint8_t len = 0;    // 文字数
-  uint8_t sign;       // 負号
+  uint8_t len =  0;   // 文字数
+  uint8_t sign = 0;   // 負号
   uint8_t str[7];     // 入力文字バッファ
-  
+
+  // 文字入力ループ
   for(;;) {
     c = c_getch();
     if (c == CHAR_CR && len) {
+        // 1文字以上入力で[ENTER]確定
         break;
-    } else if (c == CHAR_CTRL_C || c==CHAR_ESCAPE) {
-      err = ERR_CTR_C;
+    } else if (c == CHAR_CTRL_C || c == CHAR_ESCAPE) {
+        // [CTRL+C] or [ESC]で入力中止
+        err = ERR_CTR_C;
         break;
-    } else 
-    //［BackSpace］キーが押された場合の処理（行頭ではないこと）
-    if (((c == CHAR_BACKSPACE) || (c == CHAR_DEL)) && (len > 0)) {
-      len--; //文字数を1減らす
-      c_putch(CHAR_BACKSPACE); c_putch(' '); c_putch(CHAR_BACKSPACE); //文字を消す
-    } else
-    //行頭の符号および数字が入力された場合の処理（符号込みで6桁を超えないこと）
-    if ((len == 0 && (c == '+' || c == '-')) ||
-      (len < 6 && c_isdigit(c))) {
-      str[len++] = c; //バッファへ入れて文字数を1増やす
-      c_putch(c); //表示
+    } else if (((c == CHAR_BACKSPACE) || (c == CHAR_DEL)) && (len > 0)) {
+        //［BS］or [DEL] かつ 1文字以上入力あり
+        len--; // 文字数を1減らす
+        c_putch(CHAR_BACKSPACE); c_putch(' '); c_putch(CHAR_BACKSPACE); // 文字を消す
+    } else if ((len == 0 && (c == '+' || c == '-')) || (len < 6 && c_isdigit(c))) {
+        // 行頭の符号および数字が入力された場合の処理（符号込みで6桁を超えないこと）        
+        str[len++] = c; // バッファへ入れて文字数を1増やす
+        c_putch(c); //表示
     } else {      
       c_beep();
     }
   }
-  newline(); //改行
-  str[len] = 0; //終端を置く
-
+  newline();    // 改行
+  str[len] = 0; // 終端を置く
   if (str[0] == '-') {
-    sign = 1; //負の値
-    len = 1;  //数字列はstr[1]以降    
+    sign = 1;   // 負の値
+    len = 1;    // 数字列はstr[1]以降    
   } else if (str[0] == '+') {
-    sign = 0; //正の値
-    len = 1;  //数字列はstr[1]以降
+    //sign = 0;   // 正の値
+    len = 1;    // 数字列はstr[1]以降
   } else {
-    sign = 0; //正の値
-    len = 0;  //数字列はstr[0]以降    
+    //sign = 0;   // 正の値
+    len = 0;    // 数字列はstr[0]以降    
   }
  
-  value = 0; // 値をクリア
-  tmp = 0;   // 計算過程の値をクリア
-  while (str[len]) { //終端でなければ繰り返す
+  //value = 0;    // 値をクリア
+  //tmp = 0;      // 計算過程の値をクリア
+  while (str[len]) {  // 終端でなければ繰り返す
     tmp = 10 * value + str[len++] - '0'; //数字を値に変換
     if (value > tmp) { // もし計算過程の値が前回より小さければ
       err = ERR_VOF;   // オーバーフローを記録
     }
-    value = tmp; //計算過程の値を記録
+    value = tmp;       // 計算過程の値を記録
   }
 
-  if (sign) //もし負の値なら
-    return -value; //負の値に変換して持ち帰る
-
-  return value; //値を持ち帰る
+  if (sign)        // もし負の値なら
+    return -value; // 負の値に変換して持ち帰る
+  return value;    // 値を持ち帰る
 }
 
 // 実行時 強制的な中断の判定
@@ -1024,8 +1022,8 @@ unsigned char toktoi() {
         } while ( *s == '0'|| *s == '1' ); //16進数文字がある限り繰り返す
 
         if (bcnt > 16) {      // 桁溢れチェック
-          err = ERR_VOF;     // エラー番号オバーフローをセット
-          return 0;          // 0を持ち帰る
+          err = ERR_VOF;      // エラー番号オバーフローをセット
+          return 0;           // 0を持ち帰る
         }
   
         if (len >= SIZE_IBUF - 3) { // もし中間コードが長すぎたら
@@ -1040,7 +1038,7 @@ unsigned char toktoi() {
     }
     
     // コメントへの変換を試みる
-    if(key == I_REM|| key == I_SQUOT) {       // もし中間コードがI_REMなら
+    if(key == I_REM || key == I_SQUOT) {       // もし中間コードがI_REMなら
       while (c_isspace(*s)) s++; //空白を読み飛ばす
       ptok = s; //コメントの先頭を指す
 
@@ -1578,69 +1576,56 @@ inline void ilabel() {
    cip+= *cip+1;   
 }
 
-// GOTO
-void igoto() {
-  uint8_t* lp;       // 飛び先行ポインタ
+// GOTO/GOSUB ジャンプ先リストポインタ取得
+uint8_t* getJumplp() {  
   int16_t lineno;    // 行番号
-
+  uint8_t* lp;       // 飛び先行ポインタ  
   if (*cip == I_STR) { 
     // 引数がラベル
     lp = getlpByLabel(cip);
     if (lp == NULL) {
       // 飛び先ラベルが見つからない
       err = ERR_ULN;
-      return;
+      return 0;
     }  
   } else {
     // 引数の行番
     lineno = iexp();                          
-    if (err)  return;         
+    if (err)  return 0;
     lp = getlp(lineno);
     if (lineno != getlineno(lp)) {
       // 飛び先行がない
       err = ERR_ULN;
-      return; 
+      return 0; 
     }
   }
+  return lp;
+}
+
+// GOTO
+void igoto() {
+  uint8_t* lp = getJumplp();     // 飛び先行ポインタ
+  if (err)
+    return;
   clp = lp;        // 行ポインタを分岐先へ更新
   cip = clp + 3;   // 中間コードポインタを先頭の中間コードに更新
 }
 
 // GOSUB
 void igosub() {
-  uint8_t* lp;       // 飛び先行ポインタ
-  int16_t lineno;    // 行番号
-
-  if (*cip == I_STR) {
-    // ラベル参照による分岐先取得
-    lp = getlpByLabel(cip);                   
-    if (lp == NULL) {
-      err = ERR_ULN;  // エラー番号をセット
-      return; 
-    }  
-  } else {
-    // 引数の行番号取得
-    lineno = iexp();
-    if (err)
-      return;  
-
-    lp = getlp(lineno);                       // 分岐先のポインタを取得
-    if (lineno != getlineno(lp)) {            // もし分岐先が存在しなければ
-      err = ERR_ULN;                          // エラー番号をセット
-      return; 
-    }
-  }
-  
+  uint8_t* lp = getJumplp();     // 飛び先行ポインタ
+  if (err)
+    return;  
   //ポインタを退避
-  if (gstki > SIZE_GSTK - 2) {              // もしGOSUBスタックがいっぱいなら
-    err = ERR_GSTKOF;                       // エラー番号をセット
+  if (gstki > SIZE_GSTK - 2) {   // もしGOSUBスタックがいっぱいなら
+    err = ERR_GSTKOF;            // エラー番号をセット
       return; 
   }
-  gstk[gstki++] = clp;                      // 行ポインタを退避
-  gstk[gstki++] = cip;                      // 中間コードポインタを退避
+  gstk[gstki++] = clp;           // 行ポインタを退避
+  gstk[gstki++] = cip;           // 中間コードポインタを退避
 
-  clp = lp;                                 // 行ポインタを分岐先へ更新
-  cip = clp + 3;                            // 中間コードポインタを先頭の中間コードに更新
+  clp = lp;                      // 行ポインタを分岐先へ更新
+  cip = clp + 3;                 // 中間コードポインタを先頭の中間コードに更新
 }
 
 // RETURN
@@ -2154,7 +2139,7 @@ int16_t iplus() {
   for (;;) // 無限に繰り返す
   switch(*cip){   // 中間コードで分岐
   case I_PLUS:    // 足し算の場合
-    cip++; //中間コードポインタを次へ進める
+    cip++;        // 中間コードポインタを次へ進める
     tmp = imul(); // 演算値を取得
     value += tmp; // 足し算を実行
     break;
@@ -2564,9 +2549,9 @@ uint8_t* iexe() {
 
 // RUN command handler
 void irun() {
-  uint8_t* lp; //行ポインタの一時的な記憶場所
+  uint8_t* lp; // 行ポインタの一時的な記憶場所
 
-  //変数と配列の初期化
+  // 変数と配列の初期化
   memset(var,0,52);
   memset(arr,0,SIZE_ARRY*2);
 
@@ -2621,18 +2606,16 @@ uint8_t icom() {
 */
 
 void basic() {
-  uint8_t len; //中間コードの長さ
+  uint8_t len;     // 中間コードの長さ
 
   init_console();  // シリアルコンソールの初期設定
 
 #if USE_CMD_VFD == 1 
   VFD_init();
 #endif
-
 #if USE_CMD_I2C == 1
   i2c_init();  // I2C利用開始  
 #endif  
-
 #if USE_CMD_PLAY == 1
   // MML初期化、デバイス依存関数の登録
   mml.init(dev_toneInit, dev_tone, dev_notone, dev_debug);
