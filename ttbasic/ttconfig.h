@@ -51,5 +51,5 @@
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
-#define USE_SO1602AWWB 1  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
+#define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
 #endif

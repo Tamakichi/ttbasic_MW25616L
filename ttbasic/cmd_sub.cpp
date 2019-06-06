@@ -78,6 +78,7 @@ int16_t igrade() {
   if ( getParam(arrayIndex, 0, SIZE_ARRY-1, true) )  return 0;
   if ( getParam(len, 0, SIZE_ARRY, false) )  return 0;
   if ( checkClose()) return 0;    
+ 
   if ( arrayIndex+len > SIZE_ARRY ) {
     err = ERR_VALUE;
     return 0;    
@@ -323,4 +324,42 @@ void iwstr(uint8_t devno) {
     cnt++;
   }
   return;
+}
+
+// メモリ参照　PEEK(adr)
+int16_t ipeek() {
+  int16_t value =0, vadr;
+  uint8_t* radr;
+  
+  vadr = getparam();
+  if (err) return 0;
+  radr = v2realAddr(vadr);
+  if (radr)
+    value = *radr;
+  else 
+    err = ERR_VALUE;
+  return value;
+}
+
+// POKEコマンド POKE ADR,データ[,データ,..データ]
+void ipoke() {
+  uint8_t* adr;
+  int16_t value;
+  int16_t vadr;
+  
+  // アドレスの指定
+  if ( getParam(vadr, 0, 32767, false) ) return;
+
+  // 例: 1,2,3,4,5 の連続設定処理
+  do {
+    adr = v2realAddr(vadr);
+    if (!adr) {
+      err = ERR_VALUE;
+      break;
+    }
+    cip++;          // 中間コードポインタを次へ進める
+    if (getParam(value,false)) return; 
+    *((uint8_t*)adr) = (uint8_t)value;
+    vadr++;
+  } while(*cip == I_COMMA);
 }

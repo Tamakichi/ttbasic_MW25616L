@@ -39,8 +39,9 @@
 #include "basic.h"
 
 //*** 機器依存識別 ********************************
-#define STR_EDITION "ARDUINO"
-#define STR_VARSION "Extended version 0.07"
+#define STR_EDITION_ \
+"TOYOSHIKI TINY BASIC\n" \
+"ARDUINO Extended version 0.07\n"
 
 //*** 仮想メモリ定義 ******************************
 #define V_VRAM_TOP  0x0000    // VRAM領域先頭
@@ -352,7 +353,7 @@ uint8_t* cip;                // インタプリタ中間コード参照位置
 uint8_t* gstk[SIZE_GSTK];    // GOSUB スタック
 uint8_t gstki;               // GOSUB スタック インデックス
 uint8_t* lstk[SIZE_LSTK];    // FOR スタック
-uint8_t lstki;               // FOR 市タック インデックス
+uint8_t lstki;               // FOR 市タック インデックスtoktoi()
 
 uint8_t prevPressKey = 0;    // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
 
@@ -538,7 +539,6 @@ uint8_t isBreak() {
 // 
 void putBinnum(int16_t value, uint8_t d, uint8_t devno) {
   uint16_t  bin = (uint16_t)value; // 符号なし16進数として参照利用する
-  //uint16_t  b;                     // 指定ビット位置の値(0 or 1)
   uint16_t  dig = 0;               // 先頭が1から始まる桁数
 
   // 最初に1が現れる桁を求める
@@ -557,7 +557,6 @@ void putBinnum(int16_t value, uint8_t d, uint8_t devno) {
   // ビット文字列の出力処理
   for (int8_t i=dig-1; i>=0; i--)
    c_putch((bin & (1<<i)) ? '1':'0', devno);
-
 }
 
 // 10進数の出力
@@ -622,8 +621,8 @@ void putnum(int16_t value, int16_t d, uint8_t devno) {
 // 
 void putHexnum(int16_t value, uint8_t d, uint8_t devno) {
   uint16_t  hex = (uint16_t)value; // 符号なし16進数として参照利用する
-  uint16_t  h;
-  uint16_t dig;
+  uint8_t   h;
+  uint8_t  dig;
   
   // 表示に必要な桁数を求める
   if (hex >= 0x1000) 
@@ -680,6 +679,7 @@ void putlist(uint8_t* ip, uint8_t devno) {
     } else if (*ip == I_NUM) {      
       // 数値を出力
       ip++;  putnum(*ip | *(ip + 1) << 8, 0,devno); 
+
       ip += 2;               // ポインタを次の中間コードへ進める
       if (!nospaceb(*ip))    // もし例外にあたらなければ
         c_putch(' ',devno);  // 空白を出力
@@ -688,6 +688,7 @@ void putlist(uint8_t* ip, uint8_t devno) {
     } else if (*ip == I_HEXNUM) {
       // 16進数定数を出力($+16進数定数)
       ip++; c_putch('$',devno); putHexnum(*ip | *(ip + 1) << 8, 2,devno);
+
       ip += 2;              // ポインタを次の中間コードへ進める
       if (!nospaceb(*ip))   // もし例外にあたらなければ
         c_putch(' ',devno); // 空白を出力
@@ -699,6 +700,7 @@ void putlist(uint8_t* ip, uint8_t devno) {
           putBinnum(*ip | *(ip + 1) << 8, 16,devno); // 16桁で出力
       else
           putBinnum(*ip , 8,devno);                  // 8桁で出力
+
       ip += 2;                 // ポインタを次の中間コードへ進める
       if (!nospaceb(*ip))      // もし例外にあたらなければ
         c_putch(' ',devno);    // 空白を出力
@@ -707,6 +709,7 @@ void putlist(uint8_t* ip, uint8_t devno) {
     } else if (*ip == I_VAR) {
       ip++; //ポインタを変数番号へ進める
       c_putch(*ip++ + 'A',devno); // 変数名を取得して出力
+
       if (!nospaceb(*ip))         // もし例外にあたらなければ
         c_putch(' ',devno);       // 空白を出力
 
@@ -729,7 +732,7 @@ void putlist(uint8_t* ip, uint8_t devno) {
         c_putch(*ip++,devno);    // ポインタを進めながら文字を表示
       c_putch(c,devno);          // 文字列の括りを表示
 
-      // もし次の中間コードが変数だったら空白を出力
+      // もし次の中間コードが変数、ELSEだったら空白を出力
       if (*ip == I_VAR || *ip ==I_ELSE) 
         c_putch(' ',devno);
 
@@ -783,7 +786,6 @@ void error(uint8_t flgCmd = false) {
   // エラー番号をクリア
   err = 0;                                          
 }
-
 
 // メモリへの文字出力
 // ※コマンドラインバッファをワーク用に利用
@@ -864,35 +866,6 @@ uint8_t checkClose() {
   return err;
 }
 
-// **** PALYコマンドのサポート（オプション） ***
-#if USE_CMD_PLAY == 1
-  #include "src/lib/MML.h"
-  MML mml;             // MML文演奏管理
-
-  // デバイス初期化関数
-  void dev_toneInit() {
-  }
-
-  // デバッグ出力用
-  void dev_debug(uint8_t c) {
-     c_putch(c);
-  }
-#endif
-
-// 単音出力関数
-void dev_tone(uint16_t freq, uint16_t tm, uint16_t vol=0) {
-  tone(TonePin,freq);
-  if (tm) {
-    delay(tm);
-    noTone(TonePin);
-  }
-}
-
-// 単音出力停止関数
-void dev_notone() {
-  noTone(TonePin);
-}
-
 // コマンド・関数の引数の仮想アドレスを実アドレスに変換
 //  引数   :  vadr 仮想アドレス
 //  戻り値 :  NULL以外 実アドレス、NULL 範囲外
@@ -954,7 +927,7 @@ int16_t lookup(char* str, uint16_t len) {
 
 // トークンを中間コードに変換
 // 戻り値 中間コードの並びの長さ or 0
-unsigned char toktoi() {
+uint8_t toktoi() {
   uint8_t i;              // ループカウンタ（一部の処理で中間コードに相当）
   int16_t key;            // 中間コード
   uint8_t len = 0;        // 中間コード領域のサイズ
@@ -962,10 +935,7 @@ unsigned char toktoi() {
   char c;                 // 文字列の括りに使われている文字（「"」または「'」）
   uint16_t value;         // 定数
   uint32_t tmp;           // 変換過程の定数
-  uint16_t hex;           // 16進数定数
-  uint16_t hcnt;          // 16進数桁数
-  uint16_t bin;           // 2進数定数
-  uint16_t bcnt;          // 2進数桁数
+  uint16_t cnt;           // 桁数
 
   char* s = (char*)lbuf;       // 文字列バッファの内部を指すポインタ    
   while (*s) {                 // 文字列1行分の終端まで繰り返す
@@ -987,14 +957,14 @@ unsigned char toktoi() {
     if (key == I_DOLLAR) {
       // 中間コードが16進数：$XXXX
       if (isHexadecimalDigit(*s)) {         // もし文字が16進数文字なら
-        hex = 0;                            // 定数をクリア
-        hcnt = 0;                           // 桁数
+        value = 0;                            // 定数をクリア
+        cnt = 0;                           // 桁数
         do { //次の処理をやってみる
-          hex = (hex<<4) | hex2value(*s++); // 数字を値に変換
-          hcnt++;
+          value = (value<<4) | hex2value(*s++); // 数字を値に変換
+          cnt++;
         } while (isHexadecimalDigit(*s));   // 16進数文字がある限り繰り返す
 
-        if (hcnt > 4) {      // 桁溢れチェック
+        if (cnt > 4) {      // 桁溢れチェック
           err = ERR_VOF;     // エラー番号オバーフローをセット
           return 0;          // 0を持ち帰る
         }
@@ -1006,22 +976,22 @@ unsigned char toktoi() {
 
         len--;    // I_DALLARを置き換えるために格納位置を移動
         ibuf[len++] = I_HEXNUM;  //中間コードを記録
-        ibuf[len++] = hex & 255; //定数の下位バイトを記録
-        ibuf[len++] = hex >> 8;  //定数の上位バイトを記録
+        ibuf[len++] = value & 255; //定数の下位バイトを記録
+        ibuf[len++] = value >> 8;  //定数の上位バイトを記録
       }      
     }
 
     // 2進数の変換を試みる $XXXX
     if (key == I_APOST) {
       if ( *s == '0'|| *s == '1' ) {    // もし文字が2進数文字なら
-        bin = 0;              // 定数をクリア
-        bcnt = 0;             // 桁数
+        value = 0;              // 定数をクリア
+        cnt = 0;             // 桁数
         do { //次の処理をやってみる
-          bin = (bin<<1) + (*s++)-'0' ; // 数字を値に変換
-          bcnt++;
+          value = (value<<1) + (*s++)-'0' ; // 数字を値に変換
+          cnt++;
         } while ( *s == '0'|| *s == '1' ); //16進数文字がある限り繰り返す
 
-        if (bcnt > 16) {      // 桁溢れチェック
+        if (cnt > 16) {      // 桁溢れチェック
           err = ERR_VOF;      // エラー番号オバーフローをセット
           return 0;           // 0を持ち帰る
         }
@@ -1032,8 +1002,8 @@ unsigned char toktoi() {
         }
         len--;    // I_APOSTを置き換えるために格納位置を移動
         ibuf[len++] = I_BINNUM;  // 中間コードを記録
-        ibuf[len++] = bin & 255; // 定数の下位バイトを記録
-        ibuf[len++] = bin >> 8;  // 定数の上位バイトを記録
+        ibuf[len++] = value & 255; // 定数の下位バイトを記録
+        ibuf[len++] = value >> 8;  // 定数の上位バイトを記録
       }      
     }
     
@@ -1137,7 +1107,6 @@ unsigned char toktoi() {
 // プログラム領域空きチェック
 int16_t getsize() {
   uint8_t* lp; //ポインタ
-
   for (lp = listbuf; *lp; lp += *lp); //ポインタをリストの末尾へ移動
   return listbuf + SIZE_LIST - lp - 1; //残りを計算して持ち帰る
 }
@@ -1152,42 +1121,6 @@ uint8_t* getlp(short lineno) {
   uint8_t *lp; // ポインタ
   for (lp = listbuf; *lp && getlineno(lp) < lineno; lp += *lp); // 先頭から末尾まで繰り返す
   return lp; // ポインタを持ち帰る
-}
-
-// 行番号から行インデックスを取得する
-uint16_t getlineIndex(uint16_t lineno) {
-  uint8_t *lp; // ポインタ
-  uint16_t index = 0;  
-  uint16_t rc = 32767;
-  for (lp = listbuf; *lp; lp += *lp) {           // 先頭から末尾まで繰り返す
-    if ((uint16_t)getlineno(lp) >= lineno) {     // もし指定の行番号以上なら
-      rc = index;
-      break;                                     // 繰り返しを打ち切る
-    }
-    index++;
-  }
-  return rc; 
-} 
-
-// ラベルでリストポインタを取得する
-// pLabelは [I_STR][長さ][ラベル名] であること
-uint8_t* getlpByLabel(uint8_t* pLabel) {
-  uint8_t *lp; //ポインタ
-  uint8_t len;
-  pLabel++;
-  len = *pLabel; // 長さ取得
-  pLabel++;      // ラベル格納位置
-  
-  for (lp = listbuf; *lp; lp += *lp)  { //先頭から末尾まで繰り返す
-    if ( *(lp+3) == I_STR ) {
-       if (len == *(lp+4)) {
-           if (strncmp((char*)pLabel, (char*)(lp+5), len) == 0) {
-              return lp;
-           }
-       }
-    }  
-  }
-  return NULL;
 }
 
 // 指定した行の前の行番号を取得する
@@ -1216,6 +1149,20 @@ int16_t getNextLineNo(int16_t lineno) {
   return rc;
 }
 
+// 行番号から行インデックスを取得する
+uint16_t getlineIndex(uint16_t lineno) {
+  uint8_t *lp; // ポインタ
+  uint16_t index = 0;  
+  uint16_t rc = 32767;
+  for (lp = listbuf; *lp; lp += *lp) {           // 先頭から末尾まで繰り返す
+    if ((uint16_t)getlineno(lp) >= lineno) {     // もし指定の行番号以上なら
+      rc = index;
+      break;                                     // 繰り返しを打ち切る
+    }
+    index++;
+  }
+  return rc; 
+}
 
 // プログラム行数を取得する
 uint16_t countLines(int16_t st=0, int16_t ed=32767) {
@@ -1230,6 +1177,27 @@ uint16_t countLines(int16_t st=0, int16_t ed=32767) {
       cnt++;
   }
   return cnt;   
+}
+
+// ラベルでリストポインタを取得する
+// pLabelは [I_STR][長さ][ラベル名] であること
+uint8_t* getlpByLabel(uint8_t* pLabel) {
+  uint8_t *lp; //ポインタ
+  uint8_t len;
+  pLabel++;
+  len = *pLabel; // 長さ取得
+  pLabel++;      // ラベル格納位置
+  
+  for (lp = listbuf; *lp; lp += *lp)  { //先頭から末尾まで繰り返す
+    if ( *(lp+3) == I_STR ) {
+       if (len == *(lp+4)) {
+           if (strncmp((char*)pLabel, (char*)(lp+5), len) == 0) {
+              return lp;
+           }
+       }
+    }  
+  }
+  return NULL;
 }
 
 // 指定行の削除
@@ -1298,9 +1266,8 @@ void inslist() {
 // 例： "(" 値 ")" の処理
 int16_t getparam() {
   int16_t value; // 値
-  if ( checkOpen() ) return 0;
-  if ( getParam(value, false) )  return 0;
-  if ( checkClose() ) return 0;
+  if ( checkOpen() || getParam(value, false) || checkClose() )
+    return 0;
   return value;
 }
 
@@ -1393,14 +1360,14 @@ uint8_t* getELSEptr(uint8_t* p) {
     switch(*lp) {
     case I_IF:      // IF命令
       goto DONE;
-        break;
+      break;
     case I_ELSE:    // ELSE命令
       rc = lp+1;
       goto DONE;
-        break;
+      break;
     case I_STR:     // 文字列
       lp += lp[1]+1;            
-        break;
+      break;
     case I_NUM:     // 定数
     case I_HEXNUM: 
     case I_BINNUM:
@@ -1412,7 +1379,8 @@ uint8_t* getELSEptr(uint8_t* p) {
     default:        // その他
       lp++;
     }
-  }  
+  }
+
 DONE:
   return rc;
 }
@@ -1565,8 +1533,7 @@ void iif() {
       cip = newip;
       return;
     }
-    while (*cip != I_EOL) // I_EOLに達するまで繰り返す
-    cip++;                // 中間コードポインタを次へ進める
+    iskip(); // ELSE以降をスキップ
   }
 }
 
@@ -1924,7 +1891,7 @@ void iwait() {
 // INKEY()関数
 int16_t iinkey() {
   int16_t rc = 0;
-  
+   if (checkOpen()||checkClose()) return 0;  
   if (prevPressKey) {
     // 一時バッファに入力済キーがあればそれを使う
     rc = prevPressKey;
@@ -1934,62 +1901,6 @@ int16_t iinkey() {
     rc = c_getch();
   }
   return rc;
-}
-
-// TONE 周波数 [,音出し時間]
-void itone() {
-  int16_t freq;   // 周波数
-  int16_t tm = 0; // 音出し時間
-
-  if ( getParam(freq, 0, 32767, false) ) return;
-  if(*cip == I_COMMA) {
-    cip++;
-    if ( getParam(tm, 0, 32767, false) ) return;
-  }
-  dev_tone(freq, tm);
-}
-
-//　NOTONE
-void inotone() {
-  dev_notone();
-}
-
-// メモリ参照　PEEK(adr)
-int16_t ipeek() {
-  int16_t value =0, vadr;
-  uint8_t* radr;
-  
-  vadr = getparam();
-  if (err) return 0;
-  radr = v2realAddr(vadr);
-  if (radr)
-    value = *radr;
-  else 
-    err = ERR_VALUE;
-  return value;
-}
-
-// POKEコマンド POKE ADR,データ[,データ,..データ]
-void ipoke() {
-  uint8_t* adr;
-  int16_t value;
-  int16_t vadr;
-  
-  // アドレスの指定
-  if ( getParam(vadr, 0, 32767, false) ) return;
-
-  // 例: 1,2,3,4,5 の連続設定処理
-  do {
-    adr = v2realAddr(vadr);
-    if (!adr) {
-      err = ERR_VALUE;
-      break;
-    }
-    cip++;          // 中間コードポインタを次へ進める
-    if (getParam(value,false)) return; 
-    *((uint8_t*)adr) = (uint8_t)value;
-    vadr++;
-  } while(*cip == I_COMMA);
 }
 
 // システム情報の表示
@@ -2004,20 +1915,20 @@ char top = 't';
   // スタック領域先頭アドレスの表示
   c_puts_P((const char*)F("Stack Top:"));
   putHexnum((int16_t)(adr>>16),4);putHexnum((int16_t)(adr&0xffff),4);
-  newline();
+  //newline();
   
   // ヒープ領域先頭アドレスの表示
-  c_puts_P((const char*)F("Heap Top :"));
+  c_puts_P((const char*)F("\nHeap Top :"));
   putHexnum((int16_t)(hadr>>16),4);putHexnum((int16_t)(hadr&0xffff),4);
-  newline();
+  //newline();
 
   // SRAM未使用領域の表示
-  c_puts_P((const char*)F("SRAM Free:"));
+  c_puts_P((const char*)F("\nSRAM Free:"));
   putnum((int16_t)(adr-hadr),0);
-  newline(); 
+ // newline(); 
 
   // コマンドエントリー数
-  c_puts_P((const char*)F("Command table:"));
+  c_puts_P((const char*)F("\nCommand table:"));
   putnum((int16_t)(I_EOL+1),0);
   newline();
 #endif  
@@ -2052,7 +1963,7 @@ void iprint(uint8_t devno, uint8_t nonewln) {
       while (i--)     // 文字数だけ繰り返す
         c_putch(*cip++, devno); //文字を表示
       break; 
-    case I_SHARP:   len = iexp();   break;  // 「#」 桁数を取得
+    case I_SHARP:   len = iexp();    break; // 「#」 桁数を取得
     case I_CHR:     ichr(devno);     break; // CHR$()関数
     case I_HEX:     ihex(devno);     break; // HEX$()関数
     case I_BIN:     ibin(devno);     break; // BIN$()関数     
@@ -2060,7 +1971,7 @@ void iprint(uint8_t devno, uint8_t nonewln) {
     case I_DMP:     idmp(devno);     break; // DMP$()関数
 #endif
     case I_STRREF:  iwstr(devno);    break; // STR$()関数
-#if USE_I2CEEPROM == 1 && USE_CMD_I2C == 1
+#if USE_I2CEEPROM == 1 && USE_CMD_I2C == 1 && USE_RTC_DS3231 == 1
     case I_DATESTR: idatestr(devno); break; // DATE$()関数
 #endif
     default: // 以上のいずれにも該当しなかった場合（式とみなす）
@@ -2085,47 +1996,10 @@ void iprint(uint8_t devno, uint8_t nonewln) {
       break;
     }
   }
-
   if (!nonewln) {
     newline(devno);
   }
 }
-
-// *** サウンド(Tone/PLAY) *************************
-#if USE_CMD_PLAY == 1
-
-// TEMPO テンポ
-void itempo() {
-  int16_t tempo;  
-  if ( getParam(tempo, 32, 500, false) ) return; // テンポの取得
-  mml.tempo(tempo);
-}
-
-// PLAY 文字列
-void iplay() {
-  // 引数のMMLをバッファに格納する
-  clearlbuf();
-  iprint(CDEV_MEMORY,1);
-  if (err)
-    return;
-  uint8_t* ptr = lbuf; // MML文格納アドレス先頭
-  mml.setText((char *)ptr);
-  mml.playBGM();
-
-  while (mml.isBGMPlay()) {
-    if (mml.available()) 
-      mml.playTick();  
-    //強制的な中断の判定
-    if (isBreak()) {
-      mml.stop();
-      break;
-    }  
-  }
-  if (mml.isError()) {
-    err = ERR_PLAY_MML;
-  }
-}
-#endif
 
 // add or subtract calculation
 int16_t iplus() {
@@ -2211,91 +2085,71 @@ int16_t iexp() {
 int16_t ivalue() {
   int16_t value; // 値
 
-  switch (*cip++) { // 中間コードで分岐
+  switch (*cip++) {    // 中間コードで分岐
+  case I_NUM:          // 定数の場合
+  case I_HEXNUM:       // 16進定数
+  case I_BINNUM:       // 2進数定数  
+    value = *cip | *(cip + 1) << 8; // 定数を取得
+    cip += 2;    // 中間コードポインタを定数の次へ進める
+    break;
 
-  //定数の取得
-  case I_NUM:    // 定数の場合
-  case I_HEXNUM: // 16進定数
-  case I_BINNUM: // 2進数定数  
-     value = *cip | *(cip + 1) << 8; //定数を取得
-    cip += 2;   // 中間コードポインタを定数の次へ進める
-    break;      // ここで打ち切る
-
-  //+付きの値の取得
-  case I_PLUS:        //「+」の場合
-    value = ivalue(); // 値を取得
-    break;            // ここで打ち切る
-
-  //負の値の取得
-  case I_MINUS:           // 「-」の場合
-    value = 0 - ivalue(); // 値を取得して負の値に変換
-    break;                // ここで打ち切る
-
-  case I_LNOT:            // 「!」
-    value = !ivalue();    // 値を取得してNOT演算
-    break; 
-
-  case I_BITREV:          // 「~」 ビット反転
+  case I_PLUS:  value = ivalue();   break;  //「+」の場合   
+  case I_MINUS: value = - ivalue(); break;  //「-」の場合   
+  case I_LNOT:  value = !ivalue();  break;  //「!」NOT演算
+  case I_BITREV:             // 「~」 ビット反転
     value = ~((uint16_t)ivalue()); //値を取得してNOT演算
     break;
 
-  //変数の値の取得
-  case I_VAR:            // 変数の場合
-    value = var[*cip++]; // 変数番号から変数の値を取得して次を指し示す
-    break;               // ここで打ち切る
+   case I_VAR:               // 変数の場合
+    value = var[*cip++];     // 変数番号から変数の値を取得して次を指し示す
+    break;
 
-  //括弧の値の取得
-  case I_OPEN:           //「(」の場合
+  case I_OPEN:               //「(」の場合
     cip--;
-    value = getparam();  // 括弧の値を取得
-    break;               // ここで打ち切る
+    value = getparam();      // 括弧の値を取得
+    break;
 
-  //配列の値の取得
-  case I_ARRAY: //配列の場合
+  case I_ARRAY:               // 配列の場合
     value = getparam();       // 括弧の値を取得
     if (err)                  // もしエラーが生じたら
-      break;                  // ここで打ち切る
+      break;
     if (value >= SIZE_ARRY) { // もし添え字の上限を超えたら
       err = ERR_SOR;          // エラー番号をセット
-      break;                  // ここで打ち切る
+      break;
     }
     value = arr[value];       // 配列の値を取得
-    break;                    // ここで打ち切る
+    break;
 
-  //関数の値の取得
-  case I_RND: //関数RNDの場合
-    value = getparam();      // 括弧の値を取得
-    if (err)                 // もしエラーが生じたら
-      break;                 // ここで打ち切る
-    value = random(value);   // 乱数を取得
-    break;                   // ここで打ち切る
+  // 関数の値の取得
+  case I_RND:                 // 関数RNDの場合
+    value = getparam();       // 括弧の値を取得
+    if (err)                  // もしエラーが生じたら
+      break;
+    value = random(value);    // 乱数を取得
+    break;
 
-  case I_ABS:                // 関数ABSの場合
-    value = getparam();      // 括弧の値を取得
+  case I_ABS:                 // 関数ABSの場合
+    value = getparam();       // 括弧の値を取得
     if (value == -32768)
       err = ERR_VOF;
     if (err)
       break;
     if (value < 0) 
-      value *= -1;           // 正負を反転
+      value *= -1;            // 正負を反転
     break;
 
-  case I_SIZE:              // 関数FREEの場合
+  case I_SIZE:                // 関数FREEの場合
     if (checkOpen()||checkClose()) break;
-    value = getsize();      // プログラム保存領域の空きを取得
+    value = getsize();        // プログラム保存領域の空きを取得
     break;
 
-  case I_INKEY:             // 関数INKEY
-   if (checkOpen()||checkClose()) break;
-    value = iinkey();       // キー入力値の取得
-    break;
-
+  case I_INKEY:   value = iinkey();   break; // 関数INKEY    
   case I_BYTE:    value = iwlen();    break; // 関数BYTE(文字列)   
   case I_LEN:     value = iwlen(1);   break; // 関数LEN(文字列)
   case I_ASC:     value = iasc();     break; // 関数ASC(文字列)
   case I_PEEK:    value = ipeek();    break; // PEEK()関数
-  case I_I2CW:    value = ii2cw();    break; // I2CW()関数
-  case I_I2CR:    value = ii2cr();    break; // I2CR()関数
+  case I_I2CW:    value = ii2crw(1);  break; // I2CW()関数
+  case I_I2CR:    value = ii2crw(0);  break; // I2CR()関数
   case I_SHIFTIN: value = ishiftIn(); break; // SHIFTIN()関数
   case I_PULSEIN: value = ipulseIn(); break; // PLUSEIN()関数
   case I_MAP:     value = imap();     break; // 関数MAP(V,L1,H1,L2,H2)
@@ -2325,13 +2179,8 @@ int16_t ivalue() {
     }
     break;
       
-  case I_DIN: // DIN(ピン番号)
-    value = idread();
-    break;
-
-  case I_ANA: // ANA(ピン番号)
-    value = iana();
-    break;  
+  case I_DIN: value = idread();  break;  // DIN(ピン番号)
+  case I_ANA: value = iana();    break;  // ANA(ピン番号)
   
   case I_OUTPUT:   value = OUTPUT;         break; 
   case I_INPUT_PU: value = INPUT_PULLUP;   break;
@@ -2531,23 +2380,22 @@ uint8_t* iexe() {
       err = ERR_COM; // エラー番号をセット
       return NULL;   // 終了
     
-    case I_COLON:  // 中間コードが「:」の場合
+    case I_COLON:    // 中間コードが「:」の場合
       break; 
       
-    default:       // 以上のいずれにも該当しない場合
+    default:         // 以上のいずれにも該当しない場合
      cip--;
      err = ERR_SYNTAX; //エラー番号をセット
-     
-      break; //打ち切る
+      break;
     } //中間コードで分岐の末尾
 
-    if (err) //もしエラーが生じたら
-      return NULL; //終了
+    if (err)
+      return NULL;
   } //行末まで繰り返すの末尾
   return clp + *clp; //次に実行するべき行のポインタを持ち帰る
 }
 
-// RUN command handler
+// RUNコマンド
 void irun() {
   uint8_t* lp; // 行ポインタの一時的な記憶場所
 
@@ -2558,16 +2406,16 @@ void irun() {
   gstki = 0;         // GOSUBスタックインデクスを0に初期化
   lstki = 0;         // FORスタックインデクスを0に初期化
   clp = listbuf;     // 行ポインタをプログラム保存領域の先頭に設定
-  c_show_curs(0); 
 
+  c_show_curs(0);    // カーソル消去
   while (*clp) {     // 行ポインタが末尾を指すまで繰り返す
     cip = clp + 3;   // 中間コードポインタを行番号の後ろに設定
     lp = iexe();     // 中間コードを実行して次の行の位置を得る
     if (err)         // もしエラーを生じたら      
       break;
     clp = lp;        // 行ポインタを次の行の位置へ移動
-  } // 行ポインタが末尾を指すまで繰り返すの末尾
-  c_show_curs(1); 
+  }
+  c_show_curs(1);    // カーソル表示
 }
 
 //Command precessor
@@ -2611,14 +2459,13 @@ void basic() {
   init_console();  // シリアルコンソールの初期設定
 
 #if USE_CMD_VFD == 1 
-  VFD_init();
+  VFD_init();  // VFD利用開始
 #endif
 #if USE_CMD_I2C == 1
   i2c_init();  // I2C利用開始  
 #endif  
 #if USE_CMD_PLAY == 1
-  // MML初期化、デバイス依存関数の登録
-  mml.init(dev_toneInit, dev_tone, dev_notone, dev_debug);
+  mml_init();  // MML初期化
 #endif
 
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
@@ -2629,14 +2476,8 @@ void basic() {
   inew(); // 実行環境を初期化
   icls(); // 画面クリア
   //起動メッセージ
-  c_puts_P((const char*)F("TOYOSHIKI TINY BASIC")); //「TOYOSHIKI TINY BASIC」を表示
-  newline();
-  c_puts_P((const char*)F(STR_EDITION)); //版を区別する文字列を表示
-  c_putch(' ');
-  c_puts_P((const char*)F(STR_VARSION)); //版を区別する文字列を表示
-  newline();
-  putnum(getsize(),3); c_puts_P((const char*)F("byte free")); //プログラム領域を表示
-  newline();
+  c_puts_P((const char*)F(STR_EDITION_));
+  putnum(getsize(),3); c_puts_P((const char*)F("byte free\n")); //プログラム領域を表示
   error(); //「OK」またはエラーメッセージを表示してエラー番号をクリア
   
   // リセット時に指定PINがHIGHの場合、プログラム自動起動

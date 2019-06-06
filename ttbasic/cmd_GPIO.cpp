@@ -75,7 +75,7 @@ void idwrite() {
     return;
   }
   
-  // ピンモードの設定
+  // データ出力
   digitalWrite(pinno, data);
 }
 
@@ -142,11 +142,17 @@ void ishiftOut() {
   shiftOut(dataPin, clockPin, bitOrder, data);
 }
 
+#if USE_CMD_I2C == 1
 void i2c_init() {
   Wire.begin();                      // I2C利用開始 
 }
-// I2CW関数  I2CW(I2Cアドレス, コマンドアドレス, コマンドサイズ, データアドレス, データサイズ)
-int16_t ii2cw() {
+#endif
+
+// I2Cデータ送受信
+// 引数 mode:
+// 1： I2CW関数  I2CW(I2Cアドレス, コマンドアドレス, コマンドサイズ, データアドレス, データサイズ)
+// 0： I2CR関数  I2CR(I2Cアドレス, コマンドアドレス, コマンドサイズ, 受信データアドレス,受信データサイズ)
+int16_t ii2crw(uint8_t mode) {
 #if USE_CMD_I2C == 1
   int16_t  i2cAdr, ctop, clen, top, len;
   uint8_t* ptr;
@@ -167,65 +173,28 @@ int16_t ii2cw() {
   if (ptr == 0 || cptr == 0 || v2realAddr(top+len) == 0 || v2realAddr(ctop+clen) == 0) 
      { err = ERR_VALUE; return 0; }
 
+  if (mode) {
   // I2Cデータ送信
-  Wire.beginTransmission(i2cAdr);
-  if (clen) {
-    for (int16_t i = 0; i < clen; i++)
-      Wire.write(*cptr++);
+    Wire.beginTransmission(i2cAdr);
+    if (clen) Wire.write(cptr, clen);
+    if (len)  Wire.write(ptr, len);
+    rc =  Wire.endTransmission();
+    return rc;
+  } else {
+    // I2Cデータ送受信
+    Wire.beginTransmission(i2cAdr);
+    if (clen) Wire.write(cptr, clen);
+    rc = Wire.endTransmission();
+    if (len) {
+      if (rc!=0)
+        return rc;
+      Wire.requestFrom(i2cAdr, len);
+      while (Wire.available()) {
+        *(ptr++) = Wire.read();
+      }
+    }  
+    return rc;    
   }
-  if (len) {
-    for (int16_t i = 0; i < len; i++)
-      Wire.write(*ptr++);
-  }
-  rc =  Wire.endTransmission();
-  return rc;
-#else
-  return 1;
-#endif
-}
-
-// I2CR関数  I2CR(I2Cアドレス, 送信データアドレス, 送信データサイズ,受信データアドレス,受信データサイズ)
-int16_t ii2cr() {
-#if USE_CMD_I2C == 1
-  int16_t  i2cAdr, sdtop, sdlen,rdtop,rdlen;
-  uint8_t* sdptr;
-  uint8_t* rdptr;
-  int16_t tm = 0;
-  int16_t  rc;
-
-  if (checkOpen() ||
-      getParam(i2cAdr, 0,  0x7f, true) ||
-      getParam(sdtop,  0, 32767, true) ||
-      getParam(sdlen,  0, 32767, true) ||
-      getParam(rdtop,  0, 32767, true) ||
-      getParam(rdlen,  0, 32767,false) ||
-      checkClose()
-   ) return 0;
-
-  sdptr = v2realAddr(sdtop);
-  rdptr = v2realAddr(rdtop);
-  if (sdptr == 0 || rdptr == 0 || v2realAddr(sdtop+sdlen) == 0 || v2realAddr(rdtop+rdlen) == 0) 
-     { err = ERR_VALUE; return 0; }
- 
-  // I2Cデータ送受信
-  Wire.beginTransmission(i2cAdr);
-  
-  // 送信
-  if (sdlen) {
-    Wire.write(sdptr, sdlen);
-  }
-  rc = Wire.endTransmission();
-  if (rdlen) {
-    if (rc!=0)
-      return rc;
-    if (tm) 
-      delay(tm); 
-    Wire.requestFrom(i2cAdr, rdlen);
-    while (Wire.available()) {
-      *(rdptr++) = Wire.read();
-    }
-  }  
-  return rc;
 #else
   return 1;
 #endif
@@ -427,7 +396,7 @@ void idate(uint8_t devno) {
    putnum((int16_t)rcv[2], -2,devno);
    c_puts_P((const char*)F(" ["),devno);
    c_puts_P((const char*)pgm_read_word(&weekstr[rcv[3]-1]),devno);
-   c_puts("] ",devno);
+   c_puts_P((const char*)F("] "),devno);
    putnum((int16_t)rcv[4], -2,devno);
    c_putch(':',devno);
    putnum((int16_t)rcv[5], -2,devno);

@@ -140,7 +140,7 @@ int16_t getparam();
 
 uint8_t checkOpen();
 uint8_t checkClose();
-
+void iskip();
 int16_t iexp(void);
 void mem_putch(uint8_t c);
 void putHexnum(int16_t value, uint8_t d, uint8_t devno=0);
@@ -189,7 +189,7 @@ void line_moveNextChar(uint8_t* str, uint8_t ln, uint8_t& pos);
 void line_redrawLine(uint8_t ln,uint8_t pos,uint8_t len);
 void c_gets();
 
-// 追加コマンド
+// 追加コマンド(cmd_sub.cpp)
 void ihex(uint8_t devno=CDEV_SCREEN);
 void ibin(uint8_t devno=CDEV_SCREEN);
 void ichr(uint8_t devno=CDEV_SCREEN);
@@ -199,6 +199,8 @@ int16_t iasc();
 int16_t iwlen(uint8_t flgZen=0);
 void idmp(uint8_t devno=CDEV_SCREEN);
 void iwstr(uint8_t devno=CDEV_SCREEN);
+int16_t ipeek();
+void ipoke();
 
 // ファイルシステム
 void iload(uint8_t flgskip=0);
@@ -235,6 +237,7 @@ void ishiftOut();
 int16_t ipulseIn();
 int16_t iir();
 void i2c_init();
+int16_t ii2crw(uint8_t mode);
 
 // I2C RTC DS3231
 void isetDate();
@@ -252,3 +255,10 @@ void iccons() ;
 void icdisp();
 void iccurs();
 void icprint();
+
+// サウンド出力
+void itone();
+void inotone();
+void itempo();
+void iplay();
+void mml_init();

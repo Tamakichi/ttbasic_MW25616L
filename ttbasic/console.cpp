@@ -3,11 +3,7 @@
 
 // mcursesライブラリ(修正版)
 // オリジナル版を修正して組み込み：https://github.com/ChrisMicro/mcurses
-//extern "C" {
-  #include "src/lib/mcurses.h"
-//}
-
-//#define c_getch() getch()
+#include "src/lib/mcurses.h"
 
 uint8_t flgCurs = 0;
 // シリアル経由1文字出力(mcursesから利用）
@@ -27,7 +23,10 @@ void c_beep() {
 }
 
 void c_addch(uint8_t c) {
-  addch(c);
+  if (c=='\n')
+    c_newLine();
+  else
+    addch(c);
 }
 
 uint8_t c_getch() {
@@ -70,6 +69,7 @@ void icls() {
 // カーソル移動 LOCATE x,y
 void ilocate() {
   int16_t x,  y;
+
   if ( getParam(x, true) ||
       getParam(y, false) 
   ) return;
@@ -88,9 +88,7 @@ void ilocate() {
 // 文字色/属性テーブル
 const PROGMEM  uint16_t tbl_fcolor[]  =
    { F_BLACK,F_RED,F_GREEN,F_BROWN,F_BLUE,F_MAGENTA,F_CYAN,A_NORMAL,F_YELLOW};
-const PROGMEM  uint16_t tbl_bcolor[]  =
-   { B_BLACK,B_RED,B_GREEN,B_BROWN,B_BLUE,B_MAGENTA,B_CYAN,B_WHITE,B_YELLOW};
-const PROGMEM  uint16_t tbl_attr[]  =
+const PROGMEM  uint8_t tbl_attr[]  =
     { A_NORMAL, A_UNDERLINE, A_REVERSE, A_BLINK, A_BOLD };  
 
 // 文字色の指定 COLOLR fc[,bc]
@@ -102,14 +100,14 @@ void icolor() {
     cip++;
     if ( getParam(bc, 0, 8, false) ) return;  
   }
-  attrset(pgm_read_word(&tbl_fcolor[fc])|pgm_read_word(&tbl_bcolor[bc]));
+  attrset(pgm_read_word(&tbl_fcolor[fc])|(pgm_read_word(&tbl_fcolor[bc])<<4));
 }
 
 // 文字属性の指定 ATTRコマンド
 void iattr() {
   int16_t attr;
   if ( getParam(attr, 0, 4, false) ) return;
-  attrset(pgm_read_word(&tbl_attr[attr]));
+  attrset(pgm_read_byte(&tbl_attr[attr]));
 }
 
 // 文末空白文字のトリム処理
