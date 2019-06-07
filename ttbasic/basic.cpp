@@ -28,6 +28,8 @@
 //  修正 2018/03/27 "INPUT_PU"のスペルミス対応
 //  修正 2018/08/31 BIN$()の不具合修正
 //  修正 2019/05/26 MML文演奏部をライブラリに置き換えた
+//  修正 2019/06/06 プログラムソースを機能別に分割、冗長部の見直し
+//  修正 2019/06/07 NEXT文で変数の指定を省略可能に変更
 //
 
 #include <Arduino.h>
@@ -1670,14 +1672,13 @@ void inext() {
   // 変数名を復帰
   index = (int16_t)(uintptr_t)lstk[lstki - 1]; // 変数名を復帰
   if (*cip++ != I_VAR) {                       // もしNEXTの後ろに変数がなかったら
-    err = ERR_NEXTWOV;                         // エラー番号をセット
-    return;
+    cip--;
+  } else {
+    if (*cip++ != index) { // もし復帰した変数名と一致しなかったら
+      err = ERR_NEXTUM;    // エラー番号をセット
+      return;
+    }
   }
-  if (*cip++ != index) { // もし復帰した変数名と一致しなかったら
-    err = ERR_NEXTUM;    // エラー番号をセット
-    return;
-  }
-
   vstep = (int16_t)(uintptr_t)lstk[lstki - 2]; // 増分を復帰
   var[index] += vstep;                         // 変数の値を最新の開始値に更新
   vto = (short)(uintptr_t)lstk[lstki - 3];     // 終了値を復帰
@@ -1847,16 +1848,10 @@ void idelete() {
   if ( getParam(sNo, false) ) return;
   if (*cip == I_COMMA) {
      cip++;
-     if ( getParam(eNo, false) ) return;  
+     if ( getParam(eNo, sNo,32767,false) ) return;  
   } else {
      eNo = sNo;
   }
-
-  if (eNo < sNo) {
-     err = ERR_VALUE;
-     return;
-  }
-
   //行ポインタを表示開始行番号へ進める
   lp = getlp(sNo);
   for (;;) {
