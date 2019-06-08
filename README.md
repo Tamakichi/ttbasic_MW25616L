@@ -1,33 +1,29 @@
-## 豊四季タイニーBASIC for Arduino機能拡張版
+# 豊四季タイニーBASIC for Arduino機能拡張版
 
-![image](./image/top01.jpg)![image](./image/top02.jpg)![image](./image/top03.jpg)  
-
-本プログラムは、オリジナル版「**TOYOSHIKI Tiny BASIC for Arduino**」を 機能拡張したバージョンです。  
-​	オリジナル版配布サイト <https://github.com/vintagechips/ttbasic_arduino>  
-​		関連情報 [電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版](https://vintagechips.wordpress.com/2015/12/06/%E8%B1%8A%E5%9B%9B%E5%AD%A3%E3%82%BF%E3%82%A4%E3%83%8B%E3%83%BCbasic%E7%A2%BA%E5%AE%9A%E7%89%88/)   
+![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg)  
 
 ![image/screen.png](image/screen01.png)  
 
+本プログラムは、オリジナル版「**TOYOSHIKI Tiny BASIC for Arduino**」を 機能拡張したバージョンです。  
 
-**対応ハードウェア**
+- オリジナル版配布サイト：<https://github.com/vintagechips/ttbasic_arduino>
+- ​関連情報：  [電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版](https://vintagechips.wordpress.com/2015/12/06/%E8%B1%8A%E5%9B%9B%E5%AD%A3%E3%82%BF%E3%82%A4%E3%83%8B%E3%83%BCbasic%E7%A2%BA%E5%AE%9A%E7%89%88/)  
+
+## 対応ハードウェア
 
 - Arduino Unoおよびその互換機（Arduino Nano、Pro Minoにも対応）
 - Arduino MEGA2560及びその互換機
 - MW25616L実験用表示モジュール用デモプログラム
 
+## ファームウェア書込み環境
 
-**ファームウェア書込み環境**
+- Arduino IDE 1.8.9（Windows 10等のプラットフォームを含む）
 
-- Arduino IDE 1.8.5（Windows 10等のプラットフォームを含む）
-
-
-**利用環境**
+## 利用環境
 
 - ターミナルソフト (TeraTerm を推奨、Windows 10等のプラットフォームを含む）
 
-
-
-**主な機能拡張**
+## 主な機能拡張
 
 - シリアルコンソール画面制御機能（CLS、LOCATE、COLOR、ATTRコマンド）
 
@@ -35,14 +31,14 @@
 
 - ラインエディタの編集機能拡張
 
-  - 編集キー 「←」「→」によるカーソル移動
-  - 編集キー「↑」「↓」「UP」「DOWN」による上下の行の表示
-  - 編集キー「BS」「DEL」による文字削除
-  - 編集キー「HOME」「END」による行先頭、行末へのカーソール移動
+  - 編集キー [←] [→] によるカーソル移動
+  - 編集キー[↑] [↓]、 [PageUP][PageDOWN] による上下の行の表示
+  - 編集キー[BS]、[DEL]による文字削除
+  - 編集キー[HOME] [END] による行先頭、行末へのカーソール移動
   - 行番号 [TAB]による、指定行の表示
   - エラー発生時、[TAB]による該当行の表示
-  - [F2]キーによる、行クリア
-  - [F1]キーによる、画面クリア
+  - [F2]キー、[CTRL+D]による、行クリア
+  - [F1]キー、[CTRL+L]による、画面クリア
 
 - 内部EEPROM及びI2C接続EEPROMへのプログラム保存・読み込み（SAVE、LOAD、RRASE、FILES）
 
@@ -62,22 +58,18 @@
     ​
 
 本プログラムに実装において、下記の公開ソースの一部を流用しています。  
+
 - mcursesライブラリ（組込済み）  
-  <https://github.com/ChrisMicro/mcurses>
+<https://github.com/ChrisMicro/mcurses>
 
 - MW25616L実験用表示モジュール用デモプログラム（組込済み）  
-  http://vfd-fun.blogspot.jp/
-
-
+<http://vfd-fun.blogspot.jp/>
 
 その他の利用方法については、付属のリファレンス・マニュアルを参照して下さい。  
 
+## スケッチコンパイルオプションについて
 
-
-**スケッチコンパイルオプションについて**  
-デフォルトでは「 MW25616L実験用表示モジュール(Arduino 互換)」のVFD及び漢字ROMの利用が無効になっています。有効にするには、ttconfig.hの「機能利用オプション設定」のUSE_CMD_VFDの設定を1に変更して下さい。      
-
-
+デフォルトでは「 MW25616L実験用表示モジュール(Arduino 互換)」のVFD及び漢字ROMの利用が無効になっています。有効にするには、ttconfig.hの「機能利用オプション設定」のUSE_CMD_VFDの設定を1に変更して下さい。  
 
 以下はオリジナル版のドキュメントです。  
 
