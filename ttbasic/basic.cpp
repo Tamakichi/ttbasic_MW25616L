@@ -4,6 +4,9 @@
  */
 
 //
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// 2018/03/01 by たま吉さん 
+//
 //  2018/02/11 SRAM節約修正&機能拡張 by たま吉さん
 //   (キーワード、エラーメッセージをフラッシュメモリに配置)
 //  修正 2018/02/14 「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
@@ -135,7 +138,6 @@ KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
 #if USE_IR == 1
 KW(k159,"IR");
 #endif
-
 KW(k071,"OK");
 
 //*** キーワードテーブル ***************************
@@ -367,31 +369,15 @@ uint8_t prevPressKey = 0;    // 直前入力キーの値(INKEY()、[ESC]中断�
 //*************
 
 // 英小文字⇒大文字変換
-char c_toupper(char c) {
-  return(c <= 'z' && c >= 'a' ? c - 32 : c);
-}
-
+char c_toupper(char c) { return(c <= 'z' && c >= 'a' ? c - 32 : c); }
 // 表示可能文字チェック
-char c_isprint(char c) {
-  //return(c >= 32 && c <= 126);
-  return (c);
-}
-
+char c_isprint(char c) { return (c); }
 // 空白文字(スペース、制御文字)
-char c_isspace(char c) {
-  return(c == ' ' || (c <= 13 && c >= 9));
-}
-
+char c_isspace(char c) { return(c == ' ' || (c <= 13 && c >= 9)); }
 // 数値チェック
-char c_isdigit(char c) {
-  return(c <= '9' && c >= '0');
-}
-
+char c_isdigit(char c) { return(c <= '9' && c >= '0'); }
 // 英字チェック
-char c_isalpha(char c) {
-  return ((c <= 'z' && c >= 'a') || (c <= 'Z' && c >= 'A'));
-}
-
+char c_isalpha(char c) { return ((c <= 'z' && c >= 'a') || (c <= 'Z' && c >= 'A')); }
 // 全角判定
 uint8_t isZenkaku(uint8_t c){
   return (((c>=0x81)&&(c<=0x9f))||((c>=0xe0)&&(c<=0xfc))) ? 1:0;
@@ -492,15 +478,11 @@ int16_t getnum() {
     sign = 1;   // 負の値
     len = 1;    // 数字列はstr[1]以降    
   } else if (str[0] == '+') {
-    //sign = 0;   // 正の値
     len = 1;    // 数字列はstr[1]以降
   } else {
-    //sign = 0;   // 正の値
     len = 0;    // 数字列はstr[0]以降    
   }
  
-  //value = 0;    // 値をクリア
-  //tmp = 0;      // 計算過程の値をクリア
   while (str[len]) {  // 終端でなければ繰り返す
     tmp = 10 * value + str[len++] - '0'; //数字を値に変換
     if (value > tmp) { // もし計算過程の値が前回より小さければ
@@ -591,7 +573,7 @@ void putnum(int16_t value, int16_t d, uint8_t devno) {
 
   str[6] = 0;         // 終端を置く
   dig = 6;             // 桁位置の初期値を末尾に設定
-  do { //次の処理をやってみる
+  do {
     str[--dig] = (new_value % 10) + '0';  // 1の位を文字に変換して保存
     new_value /= 10;                      // 1桁落とす
   } while (new_value > 0);                // 値が0でなければ繰り返す
@@ -624,7 +606,7 @@ void putnum(int16_t value, int16_t d, uint8_t devno) {
 void putHexnum(int16_t value, uint8_t d, uint8_t devno) {
   uint16_t  hex = (uint16_t)value; // 符号なし16進数として参照利用する
   uint8_t   h;
-  uint8_t  dig;
+  uint8_t   dig;
   
   // 表示に必要な桁数を求める
   if (hex >= 0x1000) 
@@ -854,6 +836,15 @@ uint8_t getParam(int32_t& prm, uint8_t flgCmma) {
   return err;
 }
 
+// 単一引数の評価（配列の添え字評価等に利用
+// 例： "(" 値 ")" の処理
+int16_t getparam() {
+  int16_t value; // 値
+  if ( checkOpen() || getParam(value, false) || checkClose() )
+    return 0;
+  return value;
+}
+
 // '('チェック関数
 uint8_t checkOpen() {
   if (*cip != I_OPEN) err = ERR_PAREN;
@@ -891,13 +882,13 @@ uint8_t* v2realAddr(uint16_t vadr) {
 //  該当なし   : -1
 //  見つかった : キーワードコード
 //
-int16_t lookup(char* str, uint16_t len) {
+int16_t lookup(char* str, uint8_t len) {
   int16_t fd_id;
   int16_t prv_fd_id = -1;
-  uint16_t fd_len,prv_len;
+  uint8_t fd_len,prv_len;
   char kwtbl_str[16]; // コマンド比較用
   
-  for (uint16_t j = 1; j <= len; j++) {
+  for (uint8_t j = 1; j <= len; j++) {
     fd_id = -1;
     for (uint16_t i = 0; i < SIZE_KWTBL; i++) {
       strcpy_P(kwtbl_str, (char*)pgm_read_word(&(kwtbl[i]))); 
@@ -937,7 +928,7 @@ uint8_t toktoi() {
   char c;                 // 文字列の括りに使われている文字（「"」または「'」）
   uint16_t value;         // 定数
   uint32_t tmp;           // 変換過程の定数
-  uint16_t cnt;           // 桁数
+  uint8_t  cnt;           // 桁数
 
   char* s = (char*)lbuf;       // 文字列バッファの内部を指すポインタ    
   while (*s) {                 // 文字列1行分の終端まで繰り返す
@@ -959,8 +950,8 @@ uint8_t toktoi() {
     if (key == I_DOLLAR) {
       // 中間コードが16進数：$XXXX
       if (isHexadecimalDigit(*s)) {         // もし文字が16進数文字なら
-        value = 0;                            // 定数をクリア
-        cnt = 0;                           // 桁数
+        value = 0;                          // 定数をクリア
+        cnt = 0;                            // 桁数
         do { //次の処理をやってみる
           value = (value<<4) | hex2value(*s++); // 数字を値に変換
           cnt++;
@@ -986,8 +977,8 @@ uint8_t toktoi() {
     // 2進数の変換を試みる $XXXX
     if (key == I_APOST) {
       if ( *s == '0'|| *s == '1' ) {    // もし文字が2進数文字なら
-        value = 0;              // 定数をクリア
-        cnt = 0;             // 桁数
+        value = 0;                      // 定数をクリア
+        cnt = 0;                        // 桁数
         do { //次の処理をやってみる
           value = (value<<1) + (*s++)-'0' ; // 数字を値に変換
           cnt++;
@@ -995,12 +986,12 @@ uint8_t toktoi() {
 
         if (cnt > 16) {      // 桁溢れチェック
           err = ERR_VOF;      // エラー番号オバーフローをセット
-          return 0;           // 0を持ち帰る
+          return 0;
         }
   
         if (len >= SIZE_IBUF - 3) { // もし中間コードが長すぎたら
           err = ERR_IBUFOF;         // エラー番号をセット
-          return 0;                 // 0を持ち帰る
+          return 0;
         }
         len--;    // I_APOSTを置き換えるために格納位置を移動
         ibuf[len++] = I_BINNUM;  // 中間コードを記録
@@ -1017,7 +1008,7 @@ uint8_t toktoi() {
       for (i = 0; *ptok++; i++);      // コメントの文字数を得る
       if (len >= SIZE_IBUF - 2 - i) { // もし中間コードが長すぎたら
         err = ERR_IBUFOF;             // エラー番号をセット
-        return 0;                     // 0を持ち帰る
+        return 0;
       }
 
       ibuf[len++] = i;      // コメントの文字数を記録
@@ -1045,13 +1036,12 @@ uint8_t toktoi() {
       } while (c_isdigit(*ptok)); //文字が数字である限り繰り返す
 
       if ( (tmp == 32768) && (len > 0) && (ibuf[len-1] != I_MINUS)) {
-        // valueが32768のオーバーフローエラー
-        err = ERR_VOF;                  // エラー番号をセット
+        err = ERR_VOF;                  // valueが32768のオーバーフローエラー
         return 0;
       }
 
-      if (len >= SIZE_IBUF - 3) { //もし中間コードが長すぎたら
-        err = ERR_IBUFOF; //エラー番号をセット
+      if (len >= SIZE_IBUF - 3) { // もし中間コードが長すぎたら
+        err = ERR_IBUFOF;         // バッファオーバー
         return 0;
       }
 
@@ -1081,13 +1071,13 @@ uint8_t toktoi() {
     //変数への変換を試みる    
     } else if (c_isalpha(*ptok)) { // もし文字がアルファベットなら
       if (len >= SIZE_IBUF - 2) {  // もし中間コードが長すぎたら
-        err = ERR_IBUFOF;          // エラー番号をセット
+        err = ERR_IBUFOF;          // バッファオーバー
         return 0;
       }
     
       //もし変数が3個並んだら
       if (len >= 4 && ibuf[len - 2] == I_VAR && ibuf[len - 4] == I_VAR) {
-        err = ERR_SYNTAX; // エラー番号をセット
+        err = ERR_SYNTAX;  // エラー番号をセット
         return 0;
       }
 
@@ -1170,7 +1160,7 @@ uint16_t getlineIndex(uint16_t lineno) {
 uint16_t countLines(int16_t st=0, int16_t ed=32767) {
   uint8_t *lp; //ポインタ
   uint16_t cnt = 0;  
-  int16_t lineno;
+  int16_t  lineno;
   for (lp = listbuf; *lp; lp += *lp)  {
     lineno = getlineno(lp);
     if (lineno < 0)
@@ -1210,7 +1200,7 @@ uint8_t* getlpByLabel(uint8_t* pLabel) {
 bool dellist(int16_t no) {
   uint8_t *lp;      // 削除対象位置
   uint8_t *p1, *p2; // 移動先と移動元
-  int16_t len;      // 移動の長さ
+  uint8_t  len;     // 移動の長さ
 
   lp = getlp(no);   // 削除位置ポインタを取得
   if (getlineno(lp) == no) {
@@ -1231,7 +1221,7 @@ bool dellist(int16_t no) {
 void inslist() {
   uint8_t *insp;    // listbuf領域内挿入位置
   uint8_t *p1, *p2; // 移動先と移動元
-  int16_t len;      // 移動の長さ
+  uint8_t len;      // 移動の長さ
 
   // 領域容量チャック
   if (getsize() < *ibuf) {
@@ -1264,15 +1254,6 @@ void inslist() {
     *p1++ = *p2++; // 転送
 }
 
-// 単一引数の評価（配列の添え字評価等に利用
-// 例： "(" 値 ")" の処理
-int16_t getparam() {
-  int16_t value; // 値
-  if ( checkOpen() || getParam(value, false) || checkClose() )
-    return 0;
-  return value;
-}
-
 // 変数代入式の評価
 // 例：A=値|式
 void ivar() {
@@ -1299,7 +1280,6 @@ void ivar() {
     if (err)        // もしエラーが生じたら
       return;
   }
-  
   var[index] = value; //変数へ代入
 }
 
@@ -1355,8 +1335,8 @@ void iarray() {
 //          NULL以外 LESEの次のポインタ
 //
 uint8_t* getELSEptr(uint8_t* p) {
- uint8_t* rc = NULL;
- uint8_t* lp;
+  uint8_t* rc = NULL;
+  uint8_t* lp;
 
   for (lp = p; *lp != I_EOL ; ) {
     switch(*lp) {
@@ -1515,7 +1495,7 @@ void iend() {
 
 // IF
 void iif() {
-  int16_t condition;    // IF文の条件値
+  int16_t  condition;   // IF文の条件値
   uint8_t* newip;       // ELSE文以降の処理対象ポインタ
 
   condition = iexp(); // 真偽を取得
@@ -1592,7 +1572,6 @@ void igosub() {
   }
   gstk[gstki++] = clp;           // 行ポインタを退避
   gstk[gstki++] = cip;           // 中間コードポインタを退避
-
   clp = lp;                      // 行ポインタを分岐先へ更新
   cip = clp + 3;                 // 中間コードポインタを先頭の中間コードに更新
 }
@@ -1722,10 +1701,8 @@ void ilist(uint8_t devno=0) {
 
   //リストを表示する
   while (*clp) {               // 行ポインタが末尾を指すまで繰り返す
-
-    //強制的な中断の判定
     if (isBreak())
-      return;
+      return;  //強制的な中断の判定
    
     prnlineno = getlineno(clp);// 行番号取得
     if (prnlineno > endlineno) // 表示終了行番号に達したら抜ける
@@ -1745,8 +1722,8 @@ void irenum() {
   uint16_t startLineNo = 10;  // 開始行番号
   uint16_t increase = 10;     // 増分
   uint8_t* ptr;               // プログラム領域参照ポインタ
-  uint16_t len;               // 行長さ
-  uint16_t i;                 // 中間コード参照位置
+  uint8_t  len;               // 行長さ
+  uint8_t  i;                 // 中間コード参照位置
   uint16_t newnum;            // 新しい行番号
   uint16_t num;               // 現在の行番号
   uint16_t index;             // 行インデックス
@@ -1842,7 +1819,7 @@ void irenum() {
 void idelete() {
   int16_t sNo;       // 開始行番号
   int16_t eNo;       // 終了行番号
-  uint8_t  *lp;      // 削除位置ポインタ
+  uint8_t *lp;       // 削除位置ポインタ
   int16_t n;         // 削除対象行
 
   if ( getParam(sNo, false) ) return;
@@ -1852,7 +1829,7 @@ void idelete() {
   } else {
      eNo = sNo;
   }
-  //行ポインタを表示開始行番号へ進める
+  // 行ポインタを表示開始行番号へ進める
   lp = getlp(sNo);
   for (;;) {
      n = getlineno(lp);
@@ -1902,25 +1879,22 @@ int16_t iinkey() {
 void iinfo() {
 #if  USE_SYSINFO == 1
 char top = 't';
-  uint32_t adr = (uint32_t)&top;
+  uint16_t adr = (uint32_t)&top;
   uint8_t* tmp = (uint8_t*)malloc(1);
-  uint32_t hadr = (uint32_t)tmp;
+  uint16_t hadr = (uint16_t)tmp;
   free(tmp);
 
   // スタック領域先頭アドレスの表示
   c_puts_P((const char*)F("Stack Top:"));
-  putHexnum((int16_t)(adr>>16),4);putHexnum((int16_t)(adr&0xffff),4);
-  //newline();
+  putHexnum(adr,4);
   
   // ヒープ領域先頭アドレスの表示
   c_puts_P((const char*)F("\nHeap Top :"));
-  putHexnum((int16_t)(hadr>>16),4);putHexnum((int16_t)(hadr&0xffff),4);
-  //newline();
+  putHexnum(hadr,4);
 
   // SRAM未使用領域の表示
   c_puts_P((const char*)F("\nSRAM Free:"));
   putnum((int16_t)(adr-hadr),0);
- // newline(); 
 
   // コマンドエントリー数
   c_puts_P((const char*)F("\nCommand table:"));
@@ -2291,7 +2265,6 @@ int16_t imul() {
 
 // 中間コードの実行
 // 戻り値      : 次のプログラム実行位置(行の先頭)
-
 uint8_t* iexe() {
   err = 0;
   while (*cip != I_EOL) { //行末まで繰り返す
@@ -2423,8 +2396,8 @@ uint8_t icom() {
   case I_RENUM: irenum();   break;  // RENUMの場合  
   case I_DELETE:idelete();  break;  // DELETE
   case I_NEW:   inew();     break;  // NEW  
-  case I_LOAD:  iload();    break;  // LOAD命令を実行
-  case I_SAVE:  isave();    break;  // SAVE
+  case I_LOAD:  iLoadSave(MODE_LOAD); break;  // LOAD
+  case I_SAVE:  iLoadSave(MODE_SAVE); break;  // SAVE
   case I_ERASE: ierase();   break;  // ERASE
   case I_FILES: ifiles();   break;  // FILES
   case I_FORMAT:iformat();  break;  // FORMAT
@@ -2462,7 +2435,6 @@ void basic() {
 #if USE_CMD_PLAY == 1
   mml_init();  // MML初期化
 #endif
-
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   // OLEDキャラクタディスプレイ
   OLEDinit();
@@ -2478,10 +2450,10 @@ void basic() {
   // リセット時に指定PINがHIGHの場合、プログラム自動起動
   if (digitalRead(AutoPin)) {
     // ロードに成功したら、プログラムを実行する
-    iload(1);               // プログラムのロード
-    irun();                 // RUN命令を実行
-    newline();              // 改行
-    error();                // エラーメッセージ出力
+    iLoadSave(MODE_LOAD,true);   // プログラムのロード
+    irun();                      // RUN命令を実行
+    newline();                   // 改行
+    error();                     // エラーメッセージ出力
     err = 0; 
   }
 

@@ -1,6 +1,7 @@
-// I2C EEPROM ファイルシステム(オプション) 機能
-// 追加コマンド
 //
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// ファイルシステム機能に関する機能（内部EEPROM、外部接続I2C EEPROM（オプション機能））
+// 2019/06/08 by たま吉さん 
 
 #include "Arduino.h"
 #include "basic.h"
@@ -8,7 +9,7 @@
 // **** I2C外部接続EEPROMライブラリの利用設定(オプション) ***
 #if USE_CMD_I2C == 1 && USE_I2CEEPROM == 1
   #include "src/lib/TI2CEEPROM.h"
-  TI2CEEPROM rom(0x50);
+  TI2CEEPROM rom(0x50);  // I2Cスレーブアドレスは0x50
 #endif
 
 // *** 内部EEPROMフラッシュメモリ管理 ***************
@@ -43,102 +44,67 @@
   #endif
 #endif
 
-// プログラム保存 SAVE 保存領域番号|"ファイル名"
-void isave() {
-  int16_t  prgno = 0;
-  uint16_t topAddr;
+// プログラムロード/セーブ
+// LOAD 保存領域番号|"ファイル名"
+// SAVE 保存領域番号|"ファイル名"
+// 引数
+//  mode     0:ロード、0以外:セーブ
+//  flgskip  0:引数チェック有効、0以外 引数チェック無効（自動起動ロード時利用）
+//
+void iLoadSave(uint8_t mode,uint8_t flgskip) {
+  int16_t  prgno = 0;  // プログラム番号
+  uint16_t topAddr;    // EEPROMアドレス
 
   // 引数がファイル名かのチェック
 #if USE_I2CEEPROM == 1 && USE_CMD_I2C == 1
   if (*cip == I_STR) {
 
-    // EEPROMへの保存処理
+    // 外部接続I2C EEPROMへロード/セーブ処理
     uint8_t fname[TI2CEEPROM_FNAMESIZ+1];
-    uint8_t rc;
-   
-    // ファイル名の取得
-    if (getFname(fname, TI2CEEPROM_FNAMESIZ)) 
-      return;
+    uint8_t rc;   
+    if (getFname(fname, TI2CEEPROM_FNAMESIZ)) return;  // ファイル名の取得
 
-    // プログラムの保存  
-    if ( (rc = rom.save(fname, 0, listbuf, SIZE_LIST)) ) {
-       if (rc == 2)
-         err = ERR_NOFSPACE;
-       else
-         err = ERR_I2CDEV;
-    }  
+    if (mode)
+      rc = rom.save(fname, 0, listbuf, SIZE_LIST);     // プログラムのセーブ  
+    else
+      rc = rom.load(fname, 0, listbuf, SIZE_LIST);     // プログラムのロード
+    if (rc == 2)  err = ERR_NOFSPACE;
+    else if (rc)  err = ERR_I2CDEV;
   } else 
  #endif 
   {
-
-    // 内部EEPROMメモリへの保存
-    if (*cip == I_EOL) {
-      prgno = 0;
-    } else if ( getParam(prgno, 0, EEPROM_SAVE_NUM-1, false) ) {
-      return;  
-    }
-    
-    topAddr = EEPROM_PAGE_SIZE*prgno;
-    eeprom_update_block((void *)listbuf, (void *)topAddr, SIZE_LIST);
-  }
-}
-
-// プログラムロード LOAD 保存領域番号|"ファイル名"
-void iload(uint8_t flgskip) {
-  int16_t  prgno = 0;
-  uint16_t topAddr;
-
-  // 現在のプログラムの削除
-  inew();
-#if USE_I2CEEPROM == 1 && USE_CMD_I2C == 1
-  // 引数がファイル名かのチェック
-  if (*cip == I_STR) {
-    // EEPROMへの保存処理
-    uint8_t fname[TI2CEEPROM_FNAMESIZ+1];
-    uint8_t rc;
-    
-    // ファイル名の取得
-    if (getFname(fname, TI2CEEPROM_FNAMESIZ)) 
-      return;
-  
-    // プログラムのロード
-    if ( (rc = rom.load(fname, 0, listbuf, SIZE_LIST)) ) {
-      if (rc == 2)
-         err = ERR_FNAME;  // ファイル名が正しくない,指定したファイルが存在しない
-      else 
-         err = ERR_I2CDEV; // I2Cデバイスエラー
-    }
-  } else 
-#endif  
-  {
-    // 内部EEPROMメモリからのロード
-    
+    // 内部EEPROMメモリへロード/セーブ処理
     if (!flgskip) {
       if (*cip == I_EOL) {
-        prgno = 0;
+        prgno = 0; // 引数省略時はプログラム番号を0とする
       } else if ( getParam(prgno, 0, EEPROM_SAVE_NUM-1, false) ) {
-        return;  
+        return;    // 引数エラー
       }
-    }  
-
-    // プログラムのロード
+    }    
     topAddr = EEPROM_PAGE_SIZE*prgno;
-    eeprom_read_block((void *)listbuf, (void *)topAddr, SIZE_LIST);         
+    if (mode)
+      eeprom_update_block((void *)listbuf, (void *)topAddr, SIZE_LIST);  // プログラムのセーブ  
+    else
+      eeprom_read_block((void *)listbuf, (void *)topAddr, SIZE_LIST);    // プログラムのロード      
   }
 }
 
-// EEPROM上のプログラム消去 ERASE[プログラム番号[,プログラム番号]
+void iefiles();
+void iedel();
+
+// EEPROM上のプログラム消去
+// ERASE[プログラム番号[,プログラム番号]|"ファイル名"
 void ierase() {
   int16_t  s_prgno, e_prgno;
   uint32_t* topAddr;
-  void iedel();
   
   // ファイル名指定の場合、I2C EPPROMの指定ファイル削除を行う
   if (*cip == I_STR) {
      iedel();
      return;
   } 
-  
+
+  // 引数省略or番号指定の場合、内部EEPROMのプログラム削除を行う
   if ( getParam(s_prgno, 0, EEPROM_SAVE_NUM-1, false) ) return;
   e_prgno = s_prgno;
   if (*cip == I_COMMA) {
@@ -155,8 +121,6 @@ void ierase() {
 
 // プログラムファイル一覧表示 FILES
 void ifiles() {
-  void iefiles();
-
   // ファイル名指定の場合、I2C EPPROMの一覧表示を行う
   if (*cip == I_STR) {
      iefiles();

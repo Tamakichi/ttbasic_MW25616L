@@ -1,3 +1,9 @@
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// サウンド関連
+// 2019/06/08 by たま吉さん 
+//
+
 #include "Arduino.h"
 #include "basic.h"
 
@@ -17,7 +23,7 @@
 #endif
 
 // 単音出力関数
-void dev_tone(uint16_t freq, uint16_t tm, uint16_t vol=0) {
+void dev_tone(uint16_t freq, uint16_t tm, uint8_t vol=0) {
   tone(TonePin,freq);
   if (tm) {
     delay(tm);
@@ -54,8 +60,8 @@ void inotone() {
 // TEMPO テンポ
 void itempo() {
   int16_t tempo;  
-  if ( getParam(tempo, 32, 500, false) ) return; // テンポの取得
-  mml.tempo(tempo);
+  if ( getParam(tempo, 32, 255, false) ) return; // テンポの取得
+  mml.tempo((uint8_t)tempo);
 }
 
 // PLAY 文字列

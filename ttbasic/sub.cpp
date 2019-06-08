@@ -1,7 +1,14 @@
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// BASIC 追加基本コマンド・関数
+// 2019/06/08 by たま吉さん 
+//
+
 #include "Arduino.h"
 #include "basic.h"
 
-// 16進文字出力 'HEX$(数値,桁数)' or 'HEX$(数値)'
+// 16進文字出力
+// HEX$(数値,桁数) or HEX$(数値)
 void ihex(uint8_t devno) {
   int16_t value; // 値
   int16_t d = 0; // 桁数(0で桁数指定なし)
@@ -16,7 +23,8 @@ void ihex(uint8_t devno) {
   putHexnum(value, d, devno);    
 }
 
-// 2進数出力 'BIN$(数値, 桁数)' or 'BIN$(数値)'
+// 2進数出力
+// BIN$(数値, 桁数) or BIN$(数値)
 void ibin(uint8_t devno) {
   int16_t value; // 値
   int16_t d = 0; // 桁数(0で桁数指定なし)
@@ -326,7 +334,8 @@ void iwstr(uint8_t devno) {
   return;
 }
 
-// メモリ参照　PEEK(adr)
+// メモリ参照
+// PEEK(adr)
 int16_t ipeek() {
   int16_t value =0, vadr;
   uint8_t* radr;

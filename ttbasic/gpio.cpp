@@ -1,3 +1,8 @@
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// GPIO機能の実装
+// 2019/06/08 by たま吉さん 
+
 #include "Arduino.h"
 #include "basic.h"
 

@@ -1,11 +1,10 @@
 //
 // MMLクラスライブラリ V1.0
 // 作成日 2019/03/24 by たま吉さん
-// 最終更新日 2019/05/28 by たま吉さん
+// 最終更新日 2019/06/08 by たま吉さん
 //
 
 #include "MML.h"
-//#define isBreak()  (false)
 
 // note定義
 const PROGMEM  uint16_t mml_scale[] = {
@@ -52,7 +51,7 @@ void MML::init() {
 // freq   周波数
 // tm     音出し時間
 // vol    音出し時間
-void MML::tone(int16_t freq, int16_t tm,int16_t vol) {
+void MML::tone(uint16_t freq, uint16_t tm, uint8_t vol) {
   if (func_tone != 0) 
     func_tone(freq, tm, vol);
 }
@@ -87,14 +86,14 @@ uint8_t MML::available() {
 }
     
 // TEMPO テンポ
-void MML::tempo(int16_t tempo) {
+void MML::tempo(uint8_t tempo) {
   if ( (tempo < MML_MIN_TMPO) || (tempo > MML_MAX_TMPO) ) 
     return;
   common_tempo = tempo;
 }
 
 // 長さ引数の評価
-int16_t MML::getParamLen() {
+int8_t MML::getParamLen() {
   int16_t tmpLen = getParam();
   if (tmpLen == -1)
     tmpLen = 0;
@@ -104,7 +103,7 @@ int16_t MML::getParamLen() {
     tmpLen = -1;
     err = ERR_MML; 
   }
-  return tmpLen;
+	return (int8_t)tmpLen;
 }
 
 // 引数の評価
@@ -146,14 +145,14 @@ void MML::play(uint8_t mode) {
 // PLAY 文字列
 void MML::playTick(uint8_t flgTick) {
   uint16_t freq;                     // 周波数
-  uint16_t local_len = common_len ;  // 個別長さ
+  uint8_t  local_len = common_len ;  // 個別長さ
   uint8_t  local_oct = common_oct ;  // 個別高さ
   
   int8_t  scale = 0;                 // 音階
-  uint32_t duration;                 // 再生時間(msec)
+  uint16_t duration;                 // 再生時間(msec)
   uint8_t flgExtlen = 0;
   uint8_t c;                         // 1文字取り出し用
-  int16_t tmpLen;                    // 音の長さ評価用
+  int8_t  tmpLen;                    // 音の長さ評価用
   err = 0; 
 
   // MMLの評価
@@ -286,7 +285,7 @@ void MML::playTick(uint8_t flgTick) {
     //**** ボリューム指定 Vn 
     } else if (c == 'V') {  // グローバルなボリュームの指定     
       mml_ptr++;
-      uint16_t tmpVol = getParam();
+      int16_t tmpVol = getParam();
       if (tmpVol < 0 || tmpVol > MML_MAX_VOL) {
         err = ERR_MML; 
         break;
@@ -295,7 +294,7 @@ void MML::playTick(uint8_t flgTick) {
     //**** 音の高さ指定 On 
     } else if (c == 'O') { // グローバルなオクターブの指定
       mml_ptr++;
-      uint16_t tmpOct = getParam();
+      int16_t tmpOct = getParam();
       if (tmpOct < 1 || tmpOct > MML_MAX_OCT) {
         err = ERR_MML; 
         break;
@@ -317,7 +316,7 @@ void MML::playTick(uint8_t flgTick) {
     } else if (c == 'T') { // グローバルなテンポの指定
       mml_ptr++;      
       //** 長さの指定
-      uint32_t tmpTempo = getParam();
+      int16_t tmpTempo = getParam();
       if (tmpTempo < MML_MIN_TMPO || tmpTempo > MML_MAX_TMPO) {
         err = ERR_MML; 
         break;               

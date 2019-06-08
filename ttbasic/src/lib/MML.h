@@ -1,7 +1,7 @@
 //
 // MMLクラスライブラリ V1.0
 // 作成日 2019/03/24 by たま吉さん
-// 最終更新日 2019/05/23 by たま吉さん
+// 最終更新日 2019/06/08 by たま吉さん
 //
 
 #ifndef ___MML_h___
@@ -32,8 +32,8 @@
 class MML {
   private:
     uint8_t   err = 0;                      // Error message index
-    uint16_t  common_tempo = MML_tempo ;    // 共通テンポ
-    uint16_t  common_len   = MML_len   ;    // 共通長さ
+    uint8_t   common_tempo = MML_tempo ;    // 共通テンポ
+    uint8_t   common_len   = MML_len   ;    // 共通長さ
     uint8_t   common_oct   = MML_oct   ;    // 共通高さ
     uint8_t   common_vol   = MML_vol   ;    // 音の大きさ
     uint8_t   flgdbug = 0;                  // デバッグ出力フラグ
@@ -43,19 +43,19 @@ class MML {
     uint16_t  playduration = 0;             // 処理中の音符・休符の長さ（ミリ秒）
     uint8_t   flgR = 0;                     // 休符演奏フラグ
     uint32_t  endTick = 0;                  // 再生終了システム時間（ミリ秒）
-    uint32_t  repeat  = 0;                  // 繰り返し演奏
+    uint8_t   repeat  = 0;                  // 繰り返し演奏
     volatile uint8_t   flgRun;              // 実行中状態
     volatile uint8_t   playMode = 0;        // 演奏状態 0:停止 1:フォアグランド演奏 2:バックグラウンド演奏
 
-    void (*func_tone)(uint16_t freq, uint16_t tm, uint16_t vol) = 0;
+    void (*func_tone)(uint16_t freq, uint16_t tm, uint8_t vol) = 0;
     void (*func_notone)(void) = 0;
     void (*func_init)(void) = 0;
     void (*func_putc)(uint8_t c) = 0;
   
   private:
-	  int16_t getParamLen();
+	int8_t getParamLen();
     int16_t getParam();
-    void tone(int16_t freq, int16_t tm = 0,int16_t vol=15);
+    void tone(uint16_t freq, uint16_t tm = 0, uint8_t vol=15);
     void notone();
     void debug(uint8_t c);
     void init();   
@@ -65,7 +65,7 @@ class MML {
  
     void init(
        void (*f1)(void), 
-       void (*f2)(uint16_t freq, uint16_t tm, uint16_t vol),
+       void (*f2)(uint16_t freq, uint16_t tm, uint8_t vol),
        void (*f3)(void), 
        void (*f4)(uint8_t c) = 0    ) 
     { func_init = f1; func_tone = f2; func_notone = f3; func_putc = f4; init(); }; 
@@ -74,7 +74,7 @@ class MML {
     void setText(const char* text)  // MML文の登録
     { mml_text = (char *)text; };
 
-    void tempo(int16_t tempo);
+    void tempo(uint8_t tempo);
 
     void playTick(uint8_t flgTick = true);
     void play(uint8_t mode = 0);

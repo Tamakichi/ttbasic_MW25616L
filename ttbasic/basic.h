@@ -1,3 +1,9 @@
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// ヘッダファイル（定数、変数・関数宣言）
+// 2019/06/08 by たま吉さん 
+//
+
 #include "Arduino.h"
 #include "ttconfig.h"
 
@@ -29,11 +35,9 @@
  #define TT_MAX_PINNUM 21
 #endif 
 
-#if USE_IR == 1
-uint32_t Read_IR(uint8_t pinNo,uint16_t tm) ;
-#endif
-
-// i-code(Intermediate code) assignment
+//*** 中間コード定義 *******************************
+// ※並び位置をキーワードテーブルと一致させることに注意
+// ※キーワードテーブルは basic.cppに定義
 enum {
   I_GOTO, I_GOSUB, I_RETURN, I_END, 
   I_FOR, I_TO, I_STEP, I_NEXT,
@@ -88,7 +92,9 @@ enum {
   I_EOL
 };
 
-// エラーコードテーブル
+//*** エラーコード定義 ****************************
+// ※並び位置はエラーメッセージ定義と一致させることに注意
+// ※エラーメッセージ定義はbasic.cppで定義
 enum {
   ERR_OK,
   ERR_DIVBY0,
@@ -113,6 +119,7 @@ enum {
   ERR_NOFSPACE,
 };
 
+//*** インタプリタ用グローバル変数外部参照宣言 ******
 extern uint8_t err;                  // エラーコード
 extern int16_t errorLine;            // 直前のエラー発生行番号
 extern int16_t arr[SIZE_ARRY];       // 配列変数領域
@@ -121,6 +128,8 @@ extern uint8_t lbuf[SIZE_LINE];      // コマンドラインバッファ
 extern uint8_t listbuf[SIZE_LIST];   // プログラム領域
 extern uint8_t* cip;                 // インタプリタ中間コード参照位置
 extern uint8_t prevPressKey;         // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
+
+//*** 関数のプロトタイプ宣言 **********************
 
 // 出力制御他版との互換用
 uint8_t c_getch();
@@ -203,10 +212,12 @@ int16_t ipeek();
 void ipoke();
 
 // ファイルシステム
-void iload(uint8_t flgskip=0);
+#define MODE_LOAD 0
+#define MODE_SAVE 1
+void iLoadSave(uint8_t mode,uint8_t flgskip=0);
+uint8_t getFname(uint8_t* fname, uint8_t limit);
 void ierase();
 void ifiles();
-void isave();
 
 // MW25616L VFDディスプレイ(オプション) 機能
 void VFD_init();
@@ -224,7 +235,6 @@ void iformat();
 void iefiles();
 void iedel();
 void idrive();
-uint8_t getFname(uint8_t* fname, uint8_t limit);
 
 // GPIO
 void igpio();
@@ -255,6 +265,9 @@ void iccons() ;
 void icdisp();
 void iccurs();
 void icprint();
+
+// 赤外線リモコン
+uint32_t Read_IR(uint8_t pinNo,uint16_t tm) ;
 
 // サウンド出力
 void itone();

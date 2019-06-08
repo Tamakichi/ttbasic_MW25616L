@@ -1,3 +1,9 @@
+//
+// Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
+// コンソール関連（スクリーン制御、ラインエディタ等）
+// 2019/06/08 by たま吉さん 
+//
+
 #include "Arduino.h"
 #include "basic.h"
 
@@ -70,10 +76,7 @@ void icls() {
 void ilocate() {
   int16_t x,  y;
 
-  if ( getParam(x, true) ||
-      getParam(y, false) 
-  ) return;
-  
+  if ( getParam(x, true) || getParam(y, false)) return;
   if ( x >= c_getWidth() )   // xの有効範囲チェック
      x = c_getWidth() - 1;
   else if (x < 0)  x = 0;  
