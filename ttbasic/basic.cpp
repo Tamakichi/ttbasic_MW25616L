@@ -2183,15 +2183,18 @@ int16_t ivalue() {
 
   default: //以上のいずれにも該当しなかった場合
     cip--;
-#ifdef ARDUINO_AVR_MEGA2560
+#if USE_ANADEF == 1
+ #ifdef ARDUINO_AVR_MEGA2560
     if (*cip >= I_A0 && *cip <=I_A15) {
        value = 54 +  (*cip-I_A0);
-#else
+ #else
     if (*cip >= I_A0 && *cip <=I_A7) {
        value = 14 +  (*cip-I_A0);
-#endif
+ #endif
        cip++;
-    } else {   
+    } else
+#endif
+    {
       err = ERR_SYNTAX; //エラー番号をセット
     }
   }
