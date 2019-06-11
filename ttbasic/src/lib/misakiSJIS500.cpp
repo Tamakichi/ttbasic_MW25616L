@@ -4,7 +4,7 @@
 // 
 
 #include <avr/pgmspace.h>
-#include <arduino.h>
+#include <Arduino.h>
 #include "misakiSJIS500.h"
 #include "misakiSJISFontData500.h"
 

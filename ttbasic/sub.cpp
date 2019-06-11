@@ -397,6 +397,6 @@ int16_t igetfont() {
   ptr  = v2realAddr(top);
 
   // フォントデータの取得
-  return getFontDataBySJIS(ptr, code);
+  return getFontDataBySJIS(ptr,  HantoZen(code));
 }
 #endif
