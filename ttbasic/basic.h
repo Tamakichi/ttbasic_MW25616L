@@ -1,7 +1,7 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
-// ヘッダファイル（定数、変数・関数宣言）
-// 2019/06/08 by たま吉さん 
+// ヘッダファイル（定数、変数・関数宣言） 2019/06/08 by たま吉さん 
+// 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 //
 
 #include "Arduino.h"
@@ -86,6 +86,10 @@ enum {
 #endif
 #if USE_IR == 1
   I_IR,
+#endif
+// 美咲フォントの利用
+#if USE_MISAKIFONT == 1
+  I_GETFONT,
 #endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
@@ -275,3 +279,6 @@ void inotone();
 void itempo();
 void iplay();
 void mml_init();
+
+// 美咲フォントデータ取得
+int16_t igetfont();

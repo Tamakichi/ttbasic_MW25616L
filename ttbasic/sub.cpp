@@ -1,11 +1,16 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
-// BASIC 追加基本コマンド・関数
-// 2019/06/08 by たま吉さん 
+// BASIC 追加基本コマンド・関数 2019/06/08 by たま吉さん 
+// 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 //
 
 #include "Arduino.h"
 #include "basic.h"
+
+// 美咲フォントの利用
+#if USE_MISAKIFONT == 1
+#include "src/lib/misakiSJIS500.h"
+#endif
 
 // 16進文字出力
 // HEX$(数値,桁数) or HEX$(数値)
@@ -372,3 +377,26 @@ void ipoke() {
     vadr++;
   } while(*cip == I_COMMA);
 }
+
+// 美咲フォントの利用
+#if USE_MISAKIFONT == 1
+// フォントデータ取得
+// GETFONT(仮想アドレス,SJISコード)
+// 該当フォントあり 0、該当フォントなし 1
+int16_t igetfont() {
+  int16_t  top;  // 仮想アドレス
+  uint8_t* ptr;  // フォント格納実アドレス
+  uint16_t code; // 文字コード
+
+  // 引数の取得
+  if (checkOpen() ||
+      getParam(top, 0, 32767, true) ||
+      getParam(code, false) ||
+      checkClose()
+  ) return 0;
+  ptr  = v2realAddr(top);
+
+  // フォントデータの取得
+  return getFontDataBySJIS(ptr, code);
+}
+#endif

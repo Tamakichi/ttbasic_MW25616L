@@ -33,6 +33,7 @@
 //  修正 2019/05/26 MML文演奏部をライブラリに置き換えた
 //  修正 2019/06/06 プログラムソースを機能別に分割、冗長部の見直し
 //  修正 2019/06/07 NEXT文で変数の指定を省略可能に変更
+//  修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 //
 
 #include <Arduino.h>
@@ -138,6 +139,10 @@ KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
 #if USE_IR == 1
 KW(k159,"IR");
 #endif
+// 美咲フォントの利用
+#if USE_MISAKIFONT == 1
+KW(k160,"GETFONT");
+#endif
 KW(k071,"OK");
 
 //*** キーワードテーブル ***************************
@@ -192,6 +197,10 @@ const char*  const kwtbl[] PROGMEM = {
 #if USE_IR == 1
   k159,                                              // "IR"
 #endif
+// 美咲フォントの利用
+#if USE_MISAKIFONT == 1
+  k160,
+#endif
   k071,                                              // "OK"
 };
 
@@ -231,6 +240,9 @@ const PROGMEM unsigned char i_nsa[] = {
 #endif
 #if USE_IR == 1
   I_IR,
+#endif
+#if USE_MISAKIFONT == 1
+I_GETFONT,
 #endif
 };
 
@@ -2150,7 +2162,9 @@ int16_t ivalue() {
       
   case I_DIN: value = idread();  break;  // DIN(ピン番号)
   case I_ANA: value = iana();    break;  // ANA(ピン番号)
-  
+#if USE_MISAKIFONT == 1
+  case I_GETFONT:value = igetfont(); break; // 美咲フォントの取得
+#endif   
   case I_OUTPUT:   value = OUTPUT;         break; 
   case I_INPUT_PU: value = INPUT_PULLUP;   break;
   case I_INPUT_FL: value = INPUT;          break;

@@ -1,6 +1,7 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // 豊四季Tiny BASIC for Arduino uno 構築コンフィグレーション
+// 修正 2019/06/11 GETFONTコマンド利用オプション設定の追加（美咲フォント対応）
 //
 
 #ifndef __ttconfig_h__
@@ -42,15 +43,16 @@
   #define   ARRYSIZE    32   // 配列領域
 #endif
 // ** 機能利用オプション設定 *************************************************
-#define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_CMD_VFD    0  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
-#define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_RTC_DS3231 0  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_I2CEEPROM  1  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:1)
-#define USE_SYSINFO    1  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
+#define USE_SYSINFO    0  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
 #define USE_GRADE      1  // GRADE関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
-#define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
+#define USE_IR         0  // IR関数(0:利用しない 1:利用する デフォルト:0)
 #define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
 #define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
+#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する デフォルト:0)
 #endif
