@@ -91,6 +91,10 @@ enum {
 #if USE_MISAKIFONT == 1
   I_GETFONT,
 #endif
+// NeoPixelの利用
+#if USE_NEOPIXEL
+  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_RGB,
+#endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
   I_EOL
@@ -282,3 +286,14 @@ void mml_init();
 
 // 美咲フォントデータ取得
 int16_t igetfont();
+
+// NeoPixel制御
+void ininit();
+void inupdate();
+void inbright();
+void incls();
+int16_t iRGB();
+void inset();
+void inpset();
+void inshift();
+void inmsg();

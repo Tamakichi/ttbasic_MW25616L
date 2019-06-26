@@ -143,6 +143,11 @@ KW(k159,"IR");
 #if USE_MISAKIFONT == 1
 KW(k160,"GETFONT");
 #endif
+// NeoPixelの利用
+#if USE_NEOPIXEL == 1
+KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
+KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");KW(k169,"RGB");
+#endif
 KW(k071,"OK");
 
 //*** キーワードテーブル ***************************
@@ -201,6 +206,10 @@ const char*  const kwtbl[] PROGMEM = {
 #if USE_MISAKIFONT == 1
   k160,
 #endif
+// NeoPixelの利用
+#if USE_NEOPIXEL == 1
+  k161,k162,k163,k164,k165,k166,k167,k168,k169,
+#endif
   k071,                                              // "OK"
 };
 
@@ -244,6 +253,9 @@ const PROGMEM unsigned char i_nsa[] = {
 #if USE_MISAKIFONT == 1
 I_GETFONT,
 #endif
+#if USE_NEOPIXEL == 1
+ I_RGB,
+#endif
 };
 
 // 前が定数か変数のとき前の空白をなくす中間コード
@@ -274,6 +286,9 @@ const PROGMEM unsigned char i_sf[]  = {
   I_FORMAT,I_DRIVE,
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   I_CPRINT, I_CCLS, I_CCURS, I_CLOCATE, I_CCONS, I_CDISP,  
+#endif
+#if USE_NEOPIXEL == 1
+  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT,
 #endif
 };
 
@@ -2164,7 +2179,10 @@ int16_t ivalue() {
   case I_ANA: value = iana();    break;  // ANA(ピン番号)
 #if USE_MISAKIFONT == 1
   case I_GETFONT:value = igetfont(); break; // 美咲フォントの取得
-#endif   
+#endif
+#if USE_NEOPIXEL == 1
+  case I_RGB:value = iRGB(); break;      // RGBコード変換
+#endif
   case I_OUTPUT:   value = OUTPUT;         break; 
   case I_INPUT_PU: value = INPUT_PULLUP;   break;
   case I_INPUT_FL: value = INPUT;          break;
@@ -2346,6 +2364,16 @@ uint8_t* iexe() {
 #if USE_CMD_PLAY == 1
     case I_PLAY:      iplay();          break;  // PLAY
     case I_TEMPO:     itempo();         break;  // TEMPO    
+#endif
+#if USE_NEOPIXEL == 1
+    case I_NINIT:     ininit();         break;  // NINIT
+    case I_NUPDATE:   inupdate();       break;  // NUPDATE
+    case I_NBRIGHT:   inbright();       break;  // NBRIGHT
+    case I_NCLS:      incls();          break;  // NCLS
+    case I_NSET:      inset();          break;  // NSET
+    case I_NPSET:     inpset();         break;  // NPSET        
+    case I_NSHIFT:    inshift();        break;  // NSHIFT
+    case I_NMSG:      inmsg();          break;  // NSHIFT        
 #endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO        
 

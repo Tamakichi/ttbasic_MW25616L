@@ -131,6 +131,7 @@ void ipwm() {
 
 // shiftOutコマンド SHIFTOUT dataPin, clockPin, bitOrder, value
 void ishiftOut() {
+#if USE_SHIFTOUT == 1
   int16_t dataPin, clockPin;
   int16_t bitOrder;
   int16_t data;
@@ -145,6 +146,7 @@ void ishiftOut() {
     return;
   }
   shiftOut(dataPin, clockPin, bitOrder, data);
+#endif
 }
 
 #if USE_CMD_I2C == 1
@@ -205,6 +207,7 @@ int16_t ii2crw(uint8_t mode) {
 #endif
 }
 
+#if USE_SHIFTIN ==1
 uint8_t _shiftIn( uint8_t ulDataPin, uint8_t ulClockPin, uint8_t ulBitOrder, uint8_t lgc){
   uint8_t value = 0 ;
   uint8_t i ;
@@ -216,9 +219,11 @@ uint8_t _shiftIn( uint8_t ulDataPin, uint8_t ulClockPin, uint8_t ulBitOrder, uin
   }
   return value ;
 }
-  
+#endif
+
 // SHIFTIN関数 SHIFTIN(データピン, クロックピン, オーダ[,ロジック])
 int16_t ishiftIn() {
+#if USE_SHIFTIN == 1
   int16_t rc;
   int16_t dataPin, clockPin;
   int16_t bitOrder;
@@ -237,10 +242,14 @@ int16_t ishiftIn() {
   if (checkClose()) return 0;
   rc = _shiftIn((uint8_t)dataPin, (uint8_t)clockPin, (uint8_t)bitOrder, lgc);
   return rc;
+#else
+  return 0;
+#endif
 }
 
 // PULSEIN関数 PULSEIN(ピン, 検出モード, タイムアウト時間[,単位指定])
 int16_t ipulseIn() {
+#if USE_PULSEIN == 1
   int32_t rc=0;
   int16_t dataPin;       // ピン
   int16_t mode;          // 検出モード
@@ -262,8 +271,10 @@ int16_t ipulseIn() {
   
   rc = pulseIn(dataPin, mode, ((uint32_t)tmout)*1000)/scale;  // パルス幅計測
   if (rc > 32767) rc = -1; // オーバーフロー時は-1を返す
-  
   return rc;
+#else
+  return 0;
+#endif  
 }
 
 #if USE_IR == 1
