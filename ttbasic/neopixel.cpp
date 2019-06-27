@@ -88,11 +88,11 @@ int16_t iRGB() {
 // NSET 番号,色[,更新flg]
 void inset() {
   int16_t no;
-  uint16_t color;
+  int16_t color;
   int16_t flg = 1;
 
   if (getParam(no, 0, 64, true)) return;
-  if (getParam(color,false)) return;
+  if (getParam(color,0,255,false)) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
@@ -104,12 +104,12 @@ void inset() {
 // NPSET X,Y,色[,更新flg]
 void inpset() {
   int16_t x,y;
-  uint16_t color;
+  int16_t color;
   int16_t flg = 1;
 
   if (getParam(x, 0, 7, true)) return;
   if (getParam(y, 0, 7, true)) return;
-  if (getParam(color,false)) return;
+  if (getParam(color,0,255,false)) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
@@ -148,10 +148,10 @@ void nmsg(const char* msg, uint16_t color, uint16_t tm) {
 // NMSG 色,速度,メッセージ文
 void inmsg() {
   int16_t tm;
-  uint16_t color;
+  int16_t color;
   
   if ( getParam(tm, 0, 1024, true)) return;
-  if ( getParam(color, true)) return;
+  if ( getParam(color, 0,255, true)) return;
   
   // メッセージ部をバッファに格納する
   clearlbuf();
@@ -161,4 +161,65 @@ void inmsg() {
 
   // メッセージ部の表示
   nmsg(lbuf,color,tm);
+}
+
+// 直線を引く
+template <typename T> int _v_sgn(T val) {return (T(0) < val) - (val < T(0));}
+#ifndef abs
+#define abs(a)  (((a)>0) ? (a) : -(a))
+#endif
+//#define _swap(a,b) tmp=a;a=b;b=tmp
+void drawline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color){
+   int dx=abs(x1-x0), dy=abs(y1-y0),sx=_v_sgn(x1-x0),sy=_v_sgn(y1-y0);
+   int err=dx-dy; 
+   if((x0!=x1)||(y0!=y1)) 
+       np.setPixel(x1,y1,color, 0);
+   do{
+       np.setPixel(x0,y0,color, 0);
+       int e2=2*err;
+       if (e2 > -dy){err-=dy;x0+=sx;}
+       if (e2 <  dx){err+=dx;y0+=sy;}
+   }   while ((x0!=x1)||(y0!=y1));
+}
+
+// NeoPixel 直線描画
+// NLINE X1,Y1,X2,Y2,色[,モード[,更新flg]]
+void inLine() {
+  int16_t x1, y1, x2, y2, color, mode = 0;
+  int16_t flg = 1;
+  
+  if ( getParam(x1, 0, 7, true)) return;
+  if ( getParam(y1, 0, 7, true)) return;
+  if ( getParam(x2, 0, 7, true)) return;
+  if ( getParam(y2, 0, 7, true)) return;
+  if ( getParam(color, 0, 255, false)) return;
+  if(*cip == I_COMMA) {
+    cip++;
+    if ( getParam(mode, 0, 2, false)) return;
+    if(*cip == I_COMMA) {
+       cip++;
+       if ( getParam(flg, 0, 1, false)) return;
+    } 
+  }
+  if(mode == 0) {
+    // 直線
+    drawline(x1,y1,x2,y2,color);
+  } else if (mode == 1) {
+    // 矩形
+    drawline(x1,y1,x2,y1,color);
+    drawline(x1,y1,x1,y2,color);
+    drawline(x1,y2,x2,y2,color);
+    drawline(x2,y2,x2,y1,color);
+  } else {
+    // 矩形塗りつぶし
+    int16_t w,h,x,y;
+    w = abs(x1-x2); h = abs(y1-y2);
+    if (x1>=x2) x=x2; else x=x1;
+    if (y1>=y2) y=y2; else y=y1;    
+    for (int16_t i=0; i<=h; i++)
+      drawline(x,y+i,x+w,y+i,color);
+  }
+  
+  if(flg)
+    np.update();
 }
