@@ -44,12 +44,12 @@
 #endif
 // ** 機能利用オプション設定 *************************************************
 #define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
-#define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_CMD_I2C    0  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_PULSEIN    0  // PULSEIN関数の利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_SHIFTIN    0  // SHIFTIN関数の利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_SHIFTOUT   0  // SHIFTOUTコマンドの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_CMD_VFD    0  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
-#define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_RTC_DS3231 0  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_I2CEEPROM  0  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:1)
 #define USE_SYSINFO    0  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
 #define USE_GRADE      0  // GRADE関数(0:利用しない 1:利用する デフォルト:1)

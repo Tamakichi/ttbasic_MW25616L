@@ -135,7 +135,7 @@ void inshift() {
 void nmsg(const char* msg, uint16_t color, uint16_t tm) {
   uint8_t  fnt[8];
   char *str = (char*)msg;
-  np.cls();
+  //np.cls();
   while(*str) {
     if (! (str = getFontData(fnt, str)) )  {
          break;
