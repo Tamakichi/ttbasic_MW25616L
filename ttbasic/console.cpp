@@ -1,7 +1,9 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // コンソール関連（スクリーン制御、ラインエディタ等）
-// 2019/06/08 by たま吉さん 
+// 作成 2019/06/08 by たま吉さん 
+// 修正 2019/06/30 ライン先頭全角文字のカーソル移動ミス対応、line_movePrevChar()の不具合修正
+//
 //
 
 #include "Arduino.h"
@@ -183,7 +185,7 @@ void line_movePrevChar(uint8_t* str, uint8_t ln, uint8_t& pos) {
   if (pos > 0) {
     pos--;
   }
-  if ( (pos-2 >= 0) && (isJMS(lbuf,pos-1) !=2) ) {
+  if ( (pos-1 >= 0) && (isJMS(lbuf,pos-1) !=2) ) {
     // 全角文字の2バイト目の場合、全角1バイト目にカーソルを移動する
     pos--;
   } 
