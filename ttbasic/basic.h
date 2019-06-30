@@ -93,7 +93,7 @@ enum {
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL
-  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_RGB, I_NLINE,
+  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_RGB, I_NLINE,I_NSCROLL,
 #endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
@@ -298,3 +298,4 @@ void inpset();
 void inshift();
 void inmsg();
 void inLine();
+void inscroll();

@@ -15,13 +15,12 @@ class NeoPixel {
   void init();
   void update();
   void cls(uint8_t flgUpdate=false);
-  //void setRGB(uint8_t no, uint8_t R, uint8_t G, uint8_t B, uint8_t flgUpdate=false) ;
   void setRGB(uint8_t no, uint16_t color, uint8_t flgUpdate=false) ;
   void setPixel(uint8_t x, uint8_t y,uint8_t color, uint8_t flgUpdatee=false);
   void shiftPixel(uint8_t dir, uint8_t flgUpdate=false);
   uint8_t XYtoNo(uint8_t x, uint8_t y) { return y&1 ? 8*y + x : 8*y + 7 -x;};
   void setBrightness(uint8_t bt) { brightness = bt; } ;
-  void scroll(uint8_t flgUpdate=false);
+  void scroll(uint8_t dir=0, uint8_t flgUpdate=false);
   void scrollInChar(uint8_t *fnt, uint16_t color, uint16_t tm);
   uint8_t color8(uint8_t R, uint8_t G, uint8_t B) {return (G<<5) | ((R&0b00011100)<<2) | (B&0b00000011);};
 };

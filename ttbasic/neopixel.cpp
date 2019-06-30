@@ -16,6 +16,7 @@
   #include "src/lib/misakiSJIS500.h"
 #endif
 
+#if USE_NEOPIXEL == 1
 // NeoPixel初期化設定
 // NINIT バッファアドレス,ピクセル数(1～64)
 void ininit() {
@@ -48,11 +49,18 @@ void inupdate() {
 }
 
 // NeoPixel輝度設定
-// NBRIGHT 輝度(0～5)
+// NBRIGHT 輝度(0～5)[,更新flg]
 void inbright() {
   int16_t level;
+  int16_t flg = 1;  
   if (getParam(level, 0, 5, false))  return;
+  if(*cip == I_COMMA) {
+    cip++;
+    if ( getParam(flg, 0, 1, false) ) return;
+  }  
   np.setBrightness(level);
+  if (flg)
+    np.update();
 }
 
 // NeoPixe表示クリア
@@ -91,7 +99,7 @@ void inset() {
   int16_t color;
   int16_t flg = 1;
 
-  if (getParam(no, 0, 64, true)) return;
+  if (getParam(no, 0, 63, true)) return;
   if (getParam(color,0,255,false)) return;
   if(*cip == I_COMMA) {
     cip++;
@@ -130,12 +138,13 @@ void inshift() {
   }
   np.shiftPixel(dir, flg);
 }
+#endif
 
+#if (USE_NEOPIXEL == 1) && (USE_MISAKIFONT == 1)
 // メッセージの表示
 void nmsg(const char* msg, uint16_t color, uint16_t tm) {
   uint8_t  fnt[8];
   char *str = (char*)msg;
-  //np.cls();
   while(*str) {
     if (! (str = getFontData(fnt, str)) )  {
          break;
@@ -150,7 +159,7 @@ void inmsg() {
   int16_t tm;
   int16_t color;
   
-  if ( getParam(tm, 0, 1024, true)) return;
+  if ( getParam(tm, 0, 5000, true)) return;
   if ( getParam(color, 0,255, true)) return;
   
   // メッセージ部をバッファに格納する
@@ -162,21 +171,19 @@ void inmsg() {
   // メッセージ部の表示
   nmsg(lbuf,color,tm);
 }
-
-// 直線を引く
-template <typename T> int _v_sgn(T val) {return (T(0) < val) - (val < T(0));}
-#ifndef abs
-#define abs(a)  (((a)>0) ? (a) : -(a))
 #endif
-//#define _swap(a,b) tmp=a;a=b;b=tmp
+
+#if USE_NEOPIXEL == 1
+// 直線を引く
+inline int16_t _v_sgn(int16_t val) { return (0 < val) - (val < 0);}
 void drawline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color){
-   int dx=abs(x1-x0), dy=abs(y1-y0),sx=_v_sgn(x1-x0),sy=_v_sgn(y1-y0);
-   int err=dx-dy; 
+   int16_t dx=abs(x1-x0), dy=abs(y1-y0),sx=_v_sgn(x1-x0),sy=_v_sgn(y1-y0);
+   int16_t err=dx-dy; 
    if((x0!=x1)||(y0!=y1)) 
        np.setPixel(x1,y1,color, 0);
    do{
        np.setPixel(x0,y0,color, 0);
-       int e2=2*err;
+       int16_t e2=2*err;
        if (e2 > -dy){err-=dy;x0+=sx;}
        if (e2 <  dx){err+=dx;y0+=sy;}
    }   while ((x0!=x1)||(y0!=y1));
@@ -223,3 +230,18 @@ void inLine() {
   if(flg)
     np.update();
 }
+
+// NeoPixel スクロール
+// NSCROLL 方向[,更新flg]
+void inscroll() {
+  int16_t dir;
+  int16_t flg = 1;
+
+  if (getParam(dir, 0, 3, false)) return;
+  if(*cip == I_COMMA) {
+    cip++;
+    if ( getParam(flg, 0, 1, false) ) return;
+  }
+  np.scroll(dir, flg);
+}
+#endif

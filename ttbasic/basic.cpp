@@ -147,6 +147,7 @@ KW(k160,"GETFONT");
 #if USE_NEOPIXEL == 1
 KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
 KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");KW(k169,"RGB");;KW(k170,"NLINE");
+KW(k171,"NSCROLL");
 #endif
 KW(k071,"OK");
 
@@ -208,7 +209,7 @@ const char*  const kwtbl[] PROGMEM = {
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
-  k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,
+  k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,
 #endif
   k071,                                              // "OK"
 };
@@ -288,7 +289,7 @@ const PROGMEM unsigned char i_sf[]  = {
   I_CPRINT, I_CCLS, I_CCURS, I_CLOCATE, I_CCONS, I_CDISP,  
 #endif
 #if USE_NEOPIXEL == 1
-  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_NLINE,
+  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_NLINE,I_NSCROLL,
 #endif
 };
 
@@ -2373,8 +2374,11 @@ uint8_t* iexe() {
     case I_NSET:      inset();          break;  // NSET
     case I_NPSET:     inpset();         break;  // NPSET        
     case I_NSHIFT:    inshift();        break;  // NSHIFT
+#if USE_MISAKIFONT == 1
     case I_NMSG:      inmsg();          break;  // NMSG
+#endif
     case I_NLINE:     inLine();         break;  // NLINE
+    case I_NSCROLL:   inscroll();       break;  // NSCROLL
 #endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO        
 

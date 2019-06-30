@@ -59,7 +59,6 @@ void NeoPixel::update() {
     d[0] = ((0b11100000&buf[i])>>5)<<brightness;  // G
     d[1] = ((0b00011100&buf[i])>>2)<<brightness;  // R
     d[2] = (0b00000011&buf[i])<<(brightness+1);   // B
-    
     // 3バイト分（24ビット）送信
     for (uint8_t k = 0; k < 3; k++) {
       // 1バイトデータ送信
@@ -77,16 +76,7 @@ void NeoPixel::cls(uint8_t flgUpdate) {
   if (flgUpdate)
     update();
 }
-/*
-// 指定したピクセルの色を設定
-void NeoPixel::setRGB(uint8_t no, uint8_t R, uint8_t G, uint8_t B, uint8_t flgUpdate) {
-  if (no < n) {
-    buf[no] = color8(R,G,B);
-  }
-  if (flgUpdate)
-    update();
-}
-*/
+
 void NeoPixel::setRGB(uint8_t no, uint16_t color, uint8_t flgUpdate) {
   if (no < n) {
     buf[no] = color;
@@ -98,13 +88,6 @@ void NeoPixel::setRGB(uint8_t no, uint16_t color, uint8_t flgUpdate) {
 
 // 8x8ドットマトリックス用指定座標にピクセル設定
 void NeoPixel::setPixel(uint8_t x, uint8_t y,uint8_t color, uint8_t flgUpdate) {
-/*
-  uint8_t R,G,B;
-  G = (0b11100000 & color)>>5;
-  R = (0b00011100 & color)>>2;
-  B = 0b00000011 & color;
-  //setRGB(XYtoNo(x,y), R,G,B, flgUpdate);
-*/
   setRGB(XYtoNo(x,y), color, flgUpdate);
 }
   
@@ -125,17 +108,35 @@ void NeoPixel::shiftPixel(uint8_t dir, uint8_t flgUpdate) {
 }
 
 // ドットマトリックス 左スクロール
-void NeoPixel::scroll(uint8_t flgUpdate) {
-  for (uint8_t i=0; i < 8; i++) {
-    if ( i&1 ) {
-      memmove(&buf[i*8], &buf[i*8+1],7);
-      //memset(&buf[i*8+7], 0, 1);
-      buf[i*8+7] = 0;
-    } else {
-      memmove(&buf[i*8+1], &buf[i*8],7);
-      //memset(&buf[i*8], 0, 1);
-      buf[i*8] = 0;
+void NeoPixel::scroll(uint8_t dir, uint8_t flgUpdate) {
+  if (dir == 0) {
+    // 左スクロール
+    for (uint8_t y=0; y<8; y++) { 
+      for (uint8_t x=0; x<7; x++)
+        buf[XYtoNo(x,y)] = buf[XYtoNo(x+1,y)];
+      buf[XYtoNo(7,y)] = 0;
     }
+  } else if (dir == 1) {
+    // 右スクロール
+    for (uint8_t y=0; y<8; y++) { 
+      for (uint8_t x=7; x>0; x--)
+        buf[XYtoNo(x,y)] = buf[XYtoNo(x-1,y)];
+      buf[XYtoNo(0,y)] = 0;
+    }
+  } else if (dir == 2) {
+    // 上スクロール
+    for (uint8_t x=0; x<8; x++) {
+      for (uint8_t y=0; y<7; y++)
+        buf[XYtoNo(x,y)] = buf[XYtoNo(x,y+1)];
+      buf[XYtoNo(x,7)] = 0;
+    }
+  } else if (dir == 3) {
+    // 下スクロール
+    for (uint8_t x=0; x<8; x++) {
+      for (uint8_t y=7; y>0; y--) 
+        buf[XYtoNo(x,y)] = buf[XYtoNo(x,y-1)];
+      buf[XYtoNo(x,0)] = 0;
+    } 
   }
   if (flgUpdate)
     update();
@@ -145,7 +146,7 @@ void NeoPixel::scroll(uint8_t flgUpdate) {
 void NeoPixel::scrollInChar(uint8_t *fnt, uint16_t color, uint16_t tm) {
   for (uint8_t i = 0; i < 8; i++) {
     // 左1ドットスクロール
-    scroll(false);
+    scroll(0,0);
 
     // フォントパターン1列分のセット
     for (uint8_t j = 0; j < 8; j++) {
