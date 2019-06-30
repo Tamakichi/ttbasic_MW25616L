@@ -34,6 +34,7 @@
 //  修正 2019/06/06 プログラムソースを機能別に分割、冗長部の見直し
 //  修正 2019/06/07 NEXT文で変数の指定を省略可能に変更
 //  修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
+//  修正 2019/06/30 行挿入不具合対応 inslist()のlenの型をuint8_tからuint16_tに変更
 //
 
 #include <Arduino.h>
@@ -1249,7 +1250,7 @@ bool dellist(int16_t no) {
 void inslist() {
   uint8_t *insp;    // listbuf領域内挿入位置
   uint8_t *p1, *p2; // 移動先と移動元
-  uint8_t len;      // 移動の長さ
+  uint16_t len;     // 移動の長さ
 
   // 領域容量チャック
   if (getsize() < *ibuf) {
