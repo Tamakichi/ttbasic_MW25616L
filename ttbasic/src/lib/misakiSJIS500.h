@@ -1,8 +1,9 @@
 // 
 // 美咲フォントドライバ v1.1 by たま吉さん 2019/06/11
 // 内部フラッシュメモリバージョン SJIS 500文字版
-// 
-
+//
+// 修正 2019/06/30 FTABLESIZEを実配列から算出に変更
+//
 
 #ifndef misakiSJIS500_h
 #define misakiSJIS500_h
@@ -10,7 +11,7 @@
 #include <avr/pgmspace.h>
 #include <arduino.h>
 
-#define FTABLESIZE     500       // フォントテーブルデータサイズ
+#define FTABLESIZE     (sizeof ftable / sizeof ftable[0])       // フォントテーブルデータサイズ
 #define FONT_LEN       7         // 1フォントのバイト数
 
 int16_t findcode(uint16_t  sjiscode) ;						    // フォントコード検索
