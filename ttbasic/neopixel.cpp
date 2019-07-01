@@ -23,11 +23,11 @@ void ininit() {
   int16_t  vadr;  // バッファアドレス
   int16_t  num;   // ピクセル数
   uint8_t* ptr;   // バッファ実アドレス
-  int16_t  rc;  
 
   // 引数の取得
-  if (getParam(vadr,0, 32767, true)) return;
-  if (getParam(num, 1, 64,false))  return;
+  if (getParam(vadr,0, 32767, true) ||
+      getParam(num, 1, 64,false)
+  )  return;
 
   // バッファ実アドレスの取得
   ptr  = v2realAddr(vadr);
@@ -99,8 +99,9 @@ void inset() {
   int16_t color;
   int16_t flg = 1;
 
-  if (getParam(no, 0, 63, true)) return;
-  if (getParam(color,0,255,false)) return;
+  if (getParam(no, 0, 63, true) ||
+      getParam(color,0,255,false)
+  ) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
@@ -115,9 +116,10 @@ void inpset() {
   int16_t color;
   int16_t flg = 1;
 
-  if (getParam(x, 0, 7, true)) return;
-  if (getParam(y, 0, 7, true)) return;
-  if (getParam(color,0,255,false)) return;
+  if (getParam(x, 0, 7, true) ||
+      getParam(y, 0, 7, true) ||
+      getParam(color,0,255,false)
+   ) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
@@ -159,8 +161,9 @@ void inmsg() {
   int16_t tm;
   int16_t color;
   
-  if ( getParam(tm, 0, 5000, true)) return;
-  if ( getParam(color, 0,255, true)) return;
+  if ( getParam(tm, 0, 5000, true) ||
+      getParam(color, 0,255, true)
+  ) return;
   
   // メッセージ部をバッファに格納する
   clearlbuf();
@@ -195,11 +198,12 @@ void inLine() {
   int16_t x1, y1, x2, y2, color, mode = 0;
   int16_t flg = 1;
   
-  if ( getParam(x1, 0, 7, true)) return;
-  if ( getParam(y1, 0, 7, true)) return;
-  if ( getParam(x2, 0, 7, true)) return;
-  if ( getParam(y2, 0, 7, true)) return;
-  if ( getParam(color, 0, 255, false)) return;
+  if ( getParam(x1, 0, 7, true) ||
+       getParam(y1, 0, 7, true) ||
+       getParam(x2, 0, 7, true) ||
+       getParam(y2, 0, 7, true) ||
+       getParam(color, 0, 255, false)
+  ) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(mode, 0, 2, false)) return;

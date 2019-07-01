@@ -299,8 +299,9 @@ void iwstr(uint8_t devno) {
   if (*cip == I_COMMA) {
     // 引数：文字取り出し位置、取り出し文字数の取得 
     cip++;
-    if (getParam(top, 1,len,true)) return;
-    if (getParam(n,1,len-top+1,false)) return;
+    if ( getParam(top, 1,len,true) ||
+         getParam(n,1,len-top+1,false)
+    ) return;
   }
   if (checkClose()) return;
 

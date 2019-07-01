@@ -2297,6 +2297,7 @@ int16_t imul() {
       cip--;
       return value; // 値を持ち帰る
     }
+
   }
 }
 
