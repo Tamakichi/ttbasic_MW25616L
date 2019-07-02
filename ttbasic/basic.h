@@ -4,6 +4,9 @@
 // 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 //
 
+#ifndef __basic_h__
+#define __basic_h__
+
 #include "Arduino.h"
 #include "ttconfig.h"
 
@@ -44,10 +47,16 @@ enum {
   I_IF, I_ELSE, I_REM,
   I_INPUT, I_PRINT, I_QUEST, I_LET,
   I_COMMA, I_SEMI,I_COLON, I_SQUOT,
-  I_MINUS, I_PLUS, I_MUL, I_DIV, I_OPEN, I_CLOSE, I_DOLLAR, I_APOST,
-  I_GTE, I_SHARP, I_GT, I_EQ, I_LTE, I_LT,
-  I_LNOT, I_BITREV,I_DIVR,I_LSHIFT, I_RSHIFT, I_OR, I_AND,I_LAND, I_LOR, I_XOR,
-  I_NEQ, I_NEQ2,
+  I_MINUS, I_PLUS, I_OPEN, I_CLOSE, I_DOLLAR, I_APOST,
+  
+  // 2因子演算子: "*","/","%","<<",">>","&","|","^"
+  I_MUL, I_DIV, I_DIVR, I_LSHIFT, I_RSHIFT, I_AND, I_OR, I_XOR,
+
+  // 条件判定演算子
+  I_EQ, I_NEQ, I_NEQ2,I_LT,I_LTE, I_GT, I_GTE, I_LAND, I_LOR,
+
+  I_SHARP, 
+  I_LNOT, I_BITREV, 
   I_ARRAY, I_RND, I_ABS, I_SIZE,
   I_LIST, I_RUN, I_NEW, I_CLS, I_DELETE,
 #if USE_CMD_VFD == 1
@@ -58,19 +67,23 @@ enum {
   I_BYTE, I_LEN, I_ASC,
   I_COLOR, I_ATTR, I_LOCATE, I_INKEY,
   I_GPIO, I_DOUT, I_POUT,
-  I_OUTPUT, I_INPUT_PU, I_INPUT_FL,
-  I_OFF, I_ON, I_DIN, I_ANA, I_LOW, I_HIGH,
+  I_DIN, I_ANA,
   I_RENUM,
   I_TONE, I_NOTONE,
 #if USE_CMD_PLAY == 1
   I_PLAY, I_TEMPO,
 #endif
   I_SYSINFO,
-  I_MEM, I_MVAR, I_MARRAY,I_MPRG,
+  I_MEM, I_MVAR, I_MARRAY,I_MPRG, I_MEM2,
   I_PEEK, I_POKE, I_I2CW, I_I2CR, I_TICK,
   I_MAP, I_GRADE, I_SHIFTOUT, I_PULSEIN, I_DMP, I_SHIFTIN,
+
+// 定数    
+  I_OUTPUT, I_INPUT_PU, I_INPUT_FL,
+  I_OFF, I_ON,  I_LOW, I_HIGH,I_LSB, I_MSB,
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
-  I_LSB, I_MSB,I_CW, I_CH,
+  I_CW, I_CH,
+
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   I_DATE, I_GETDATE, I_GETTIME, I_SETDATE, I_DATESTR,  // RTC関連コマンド(5)  
 #endif 
@@ -147,6 +160,7 @@ uint8_t c_getch();
 #define c_IsCurs()     flgCurs
 
 void clearlbuf() ;
+void clearibuf() ;
 void iprint(uint8_t devno=0,uint8_t nonewln=0);
 
 uint8_t getParam(int16_t& prm, int16_t v_min,int16_t v_max,uint8_t flgCmma);
@@ -207,8 +221,9 @@ void line_redrawLine(uint8_t ln,uint8_t pos,uint8_t len);
 void c_gets();
 
 // 追加コマンド(cmd_sub.cpp)
-void ihex(uint8_t devno=CDEV_SCREEN);
-void ibin(uint8_t devno=CDEV_SCREEN);
+void ihexbin(uint8_t devno,uint8_t mode);
+//void ihex(uint8_t devno=CDEV_SCREEN);
+//void ibin(uint8_t devno=CDEV_SCREEN);
 void ichr(uint8_t devno=CDEV_SCREEN);
 int16_t imap();
 int16_t igrade();
@@ -299,3 +314,5 @@ void inshift();
 void inmsg();
 void inLine();
 void inscroll();
+
+#endif

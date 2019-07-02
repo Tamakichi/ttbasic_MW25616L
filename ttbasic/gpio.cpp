@@ -103,7 +103,7 @@ int16_t idread() {
 int16_t iana() {
   int16_t value;
   if ( !(checkOpen()|| getParam(value,0,TT_MAX_PINNUM, false) || checkClose()) ) {
-    if ( !IsIO_PIN(value) ) {
+    if ( !IsADC_PIN(value) ) {
       err = ERR_GPIO;
     } else {
       value = analogRead(value);    // 入力値取得

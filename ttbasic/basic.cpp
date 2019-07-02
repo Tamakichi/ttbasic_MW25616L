@@ -35,6 +35,8 @@
 //  修正 2019/06/07 NEXT文で変数の指定を省略可能に変更
 //  修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 //  修正 2019/06/30 行挿入不具合対応 inslist()のlenの型をuint8_tからuint16_tに変更
+//  修正 2019/07/02 imul(),iexp(),ivalue()の見直し(プログラムサイズのダイエット)
+//  修正 2019/07/02 定数MEM2(ユーザーワーク領域2)の追加
 //
 
 #include <Arduino.h>
@@ -56,6 +58,7 @@
 #define V_ARRAY_TOP 0x1AA0    // 配列領域先頭
 #define V_PRG_TOP   0x1BA0    // プログラム領域先頭
 #define V_MEM_TOP   0x2BA0    // ユーザー作業領域先頭
+#define V_MEM2_TOP  0x2CA0    // ユーザー作業領域2先頭
 
 //*** 定数 ***************************************
 #define CONST_HIGH   1   // HIGH
@@ -80,13 +83,20 @@ KW(k000,"GOTO"); KW(k001,"GOSUB"); KW(k002,"RETURN"); KW(k069,"END");
 KW(k003,"FOR"); KW(k004,"TO"); KW(k005,"STEP"); KW(k006,"NEXT");
 KW(k007,"IF"); KW(k068,"ELSE"); KW(k008,"REM");
 KW(k010,"INPUT"); KW(k011,"PRINT"); KW(k042,"?"); KW(k012,"LET");
-KW(k013,","); KW(k014,";"); KW(k036,":"); KW(k070,"\'");
-KW(k015,"-"); KW(k016,"+"); KW(k017,"*"); KW(k018,"/"); 
-KW(k019,"("); KW(k020,")");KW(k035,"$"); ;KW(k114,"`");
-KW(k021,">=");KW(k022,"#"); KW(k023,">"); KW(k024,"="); KW(k025,"<="); KW(k026,"<");
-KW(k056,"!");KW(k057,"~"); KW(k058,"%");KW(k059,"<<");KW(k060,">>");
-KW(k061,"|");KW(k062,"&");KW(k063,"AND");KW(k064,"OR");KW(k065,"^");
-KW(k066,"!="); KW(k067,"<>");
+KW(k013,","); KW(k014,";"); KW(k036,":"); KW(k070,"\'"); 
+
+// 2項演算子
+KW(k015,"-"); KW(k016,"+");
+// 2因子演算子
+KW(k017,"*");KW(k018,"/");KW(k058,"%");KW(k059,"<<");KW(k060,">>");KW(k062,"&");KW(k061,"|");KW(k065,"^");
+// 条件判定演算子
+KW(k024,"=");KW(k066,"!=");KW(k067,"<>");KW(k026,"<");KW(k025,"<=");KW(k023,">"); KW(k021,">=");
+KW(k063,"AND");KW(k064,"OR");
+
+KW(k019,"("); KW(k020,")");KW(k035,"$"); KW(k114,"`");
+KW(k022,"#"); 
+KW(k056,"!");KW(k057,"~");
+
 KW(k027,"@"); KW(k028,"RND"); KW(k029,"ABS"); KW(k030,"FREE");
 KW(k031,"LIST"); KW(k032,"RUN"); KW(k033,"NEW"); KW(k034,"CLS"); KW(k142,"DELETE"); 
 #if USE_CMD_VFD == 1
@@ -97,25 +107,26 @@ KW(k043,"SAVE"); KW(k044,"LOAD"); KW(k045,"FILES"); KW(k046,"ERASE"); KW(k047,"W
 KW(k048,"CHR$"); KW(k050,"HEX$"); KW(k051,"BIN$"); KW(k072,"STR$");
 KW(k074,"BYTE"); KW(k075,"LEN"); KW(k076,"ASC");
 KW(k052,"COLOR"); KW(k053,"ATTR"); KW(k054,"LOCATE"); KW(k055,"INKEY");
-KW(k078,"GPIO"); KW(k079,"OUT"); KW(k080,"POUT");
-KW(k081,"OUTPUT"); KW(k082,"INPUT_PU"); KW(k083,"INPUT_FL");
-KW(k084,"OFF"); KW(k085,"ON"); KW(k086,"IN"); KW(k087,"ANA");
-KW(k088,"LOW"); KW(k089,"HIGH");
+KW(k078,"GPIO"); KW(k079,"OUT"); KW(k080,"POUT"); KW(k086,"IN"); KW(k087,"ANA");
 KW(k090,"RENUM");
 KW(k091,"TONE"); KW(k092,"NOTONE");
 #if USE_CMD_PLAY == 1
 KW(k093,"PLAY"); KW(k107,"TEMPO");
 #endif
 KW(k094,"SYSINFO");
-KW(k095,"MEM"); KW(k097,"VAR"); KW(k098,"ARRAY"); KW(k099,"PRG");
 KW(k100,"PEEK"); KW(k101,"POKE"); KW(k102,"I2CW"); KW(k103,"I2CR"); KW(k104,"TICK"); 
 KW(k108,"MAP"); KW(k109,"GRADE"); KW(k110,"SHIFTOUT"); KW(k111,"PULSEIN");
 KW(k112,"DMP$");KW(k113,"SHIFTIN");
-// キーボードコード
-KW(k115,"KUP"); KW(k116,"KDOWN"); KW(k117,"KRIGHT");KW(k118,"KLEFT");
-KW(k119,"KSPACE");KW(k120,"KENTER"); 
+
+KW(k095,"MEM");KW(k097,"VAR");KW(k098,"ARRAY");KW(k099,"PRG");KW(k172,"MEM2"); // 仮想アドレス
 // 定数
-KW(k121,"LSB"); KW(k122,"MSB"); KW(k123,"CW"); KW(k124,"CH");
+KW(k081,"OUTPUT"); KW(k082,"INPUT_PU"); KW(k083,"INPUT_FL");           // GPIOモード
+KW(k084,"OFF"); KW(k085,"ON"); KW(k088,"LOW"); KW(k089,"HIGH");        // ビット状態
+KW(k121,"LSB"); KW(k122,"MSB");                                        // ビット方向
+KW(k115,"KUP"); KW(k116,"KDOWN"); KW(k117,"KRIGHT");KW(k118,"KLEFT");  // キーボードコード
+KW(k119,"KSPACE");KW(k120,"KENTER");                                   // キーボードコード
+KW(k123,"CW"); KW(k124,"CH");                                          // 画面サイズ
+
 // RTC関連コマンド(5)
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
 KW(k125,"DATE"); KW(k126,"GETDATE"); KW(k127,"GETTIME"); KW(k128,"SETDATE");
@@ -124,8 +135,8 @@ KW(k129,"DATE$");
 KW(k134,"FORMAT"); KW(k141,"DRIVE");
 // キャラクタディスプレイ
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
-KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE")
-;KW(k139,"CCONS");KW(k140,"CDISP");
+KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE");
+KW(k139,"CCONS");KW(k140,"CDISP");
 #endif
 // アナログ入力ピン
 #if USE_ANADEF == 1
@@ -147,8 +158,8 @@ KW(k160,"GETFONT");
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
 KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
-KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");KW(k169,"RGB");;KW(k170,"NLINE");
-KW(k171,"NSCROLL");
+KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");
+KW(k169,"RGB");;KW(k170,"NLINE"); KW(k171,"NSCROLL");
 #endif
 KW(k071,"OK");
 
@@ -160,11 +171,12 @@ const char*  const kwtbl[] PROGMEM = {
   k003,k004,k005,k006,                               // "FOR","TO","STEP","NEXT"
   k007,k068,k008,                                    // "IF","ELSE","REM"
   k010,k011,k042,k012,                               // "INPUT","PRINT","?","LET"
-  k013,k014,k036,k070,                               //",",";",":","\'"
-  k015,k016,k017,k018,k019,k020,k035,k114,           // "-","+","*","/","(",")","$","`"
-  k021,k022,k023,k024,k025,k026,                     // ">=","#",">","=","<=","<"
-  k056,k057,k058,k059,k060,k061,k062,k063,k064,k065, // "!","~","%","<<",">>","|","&","AND","OR","^"
-  k066,k067,                                         // "!=","<>"
+  k013,k014,k036,k070,                               // ",",";",":","\'"
+  k015,k016,k019,k020,k035,k114,                     // "-","+","(",")","$","`"
+  k017,k018,k058,k059,k060,k062,k061,k065,           // 2因子演算子:   "*","/","%","<<",">>","&","|","^"
+  k024,k066,k067,k026,k025,k023,k021,k063,k064,      // 条件判定演算子: "=","!=","<>","<","<=",">",">=","AND","OR"
+  k022,                                              // "#",
+  k056,k057,                                         // "!","~",                                          
   k027,k028,k029,k030,                               // "@","RND","ABS","FREE"
   k031,k032,k033,k034,k142,                          // "LIST","RUN","NEW","CLS","DELETE"
 #if USE_CMD_VFD == 1
@@ -175,19 +187,23 @@ const char*  const kwtbl[] PROGMEM = {
   k074,k075,k076,                                    // "BYTE","LEN","ASC","WASC"
   k052,k053,k054,k055,                               // "COLOR","ATTR","LOCATE","INKEY"
   k078,k079,k080,                                    // "GPIO","OUT","POUT"
-  k081,k082,k083,                                    // "OUTPUT","INPUT_PU","INPUT_FL"
-  k084,k085,k086,k087,k088,k089,                     // "OFF","ON","IN","ANA","LOW","HIGH"
+  k086,k087,                                         // "IN","ANA"
   k090,                                              // "RENUM"
   k091,k092,                                         // "TONE","NOTONE"
 #if USE_CMD_PLAY == 1
   k093, k107,                                        // "PLAY","TEMPO"
 #endif
   k094,                                              // "SYSINFO"
-  k095,k097,k098,k099,                               // "MEM","VAR","ARRAY","PRG"
+  k095,k097,k098,k099,k172,                          // "MEM","VAR","ARRAY","PRG","MEM2",
   k100,k101,k102,k103,k104,                          // "PEEK","POKE","I2CW","I2CR","TICK"
   k108,k109,k110,k111,k112,k113,                     // "MAP","GRADE","SHIFTOUT","PULSEIN","DMP$","SHIFTIN"
+
+// 定数  
+  k081,k082,k083,                                    // "OUTPUT","INPUT_PU","INPUT_FL"
+  k084,k085,k088,k089,k121,k122,                     // "OFF","ON","LOW","HIGH","LSB","MSB",
   k115,k116,k117,k118,k119,k120,                     // "KUP","KDOWN","KRIGHT","KLEFT","KSPACE","KENTER"
-  k121,k122,k123,k124,                               // "LSB","MSB","CW","CH"
+  k123,k124,                                         // "CW","CH"
+
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   k125,k126,k127,k128, k129,                         // "DATE","GETDATE","GETTIME","SETDATE","DATE$"
 #endif
@@ -238,7 +254,7 @@ const PROGMEM unsigned char i_nsa[] = {
   I_OUTPUT, I_INPUT_PU,I_INPUT_FL,
   I_OFF, I_ON, I_DIN, I_ANA,
   I_SYSINFO,
-  I_MEM, I_MVAR, I_MARRAY,I_MPRG,
+  I_MEM, I_MVAR, I_MARRAY,I_MPRG, I_MEM2, 
   I_PEEK, I_I2CW, I_I2CR, I_TICK,
   I_MAP, I_GRADE, I_SHIFTIN, I_PULSEIN, I_DMP,
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
@@ -295,9 +311,9 @@ const PROGMEM unsigned char i_sf[]  = {
 };
 
 // 後ろが変数、数値、定数の場合、後ろに空白を空ける中間コード
-const PROGMEM unsigned char i_sb_if_value[] = {
+const PROGMEM uint8_t i_sb_if_value[] = {
   I_NUM, I_STR, I_HEXNUM, I_VAR, I_BINNUM,
-  I_OFF, I_ON, I_MEM, I_MVAR, I_MARRAY,I_MPRG,
+  I_OFF, I_ON, I_MEM, I_MVAR, I_MARRAY,I_MPRG, I_MEM2, 
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
   I_LSB, I_MSB,I_CW, I_CH,  
 #if USE_ANADEF == 1
@@ -306,6 +322,14 @@ const PROGMEM unsigned char i_sb_if_value[] = {
     I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
   #endif 
 #endif
+};
+
+// 定数テーブル
+const PROGMEM uint8_t constValue[] = {
+  OUTPUT,INPUT_PULLUP,INPUT,
+  CONST_OFF,CONST_ON,CONST_LOW,CONST_HIGH,CONST_LSB,CONST_MSB,
+  0x1c,0x1d,0x1e,0x1f,0x20,0x0d,
+  c_getWidth(),c_getHeight(),
 };
 
 //*** LIST出力整形例外チェック関数 ******************
@@ -816,6 +840,10 @@ void clearlbuf() {
   memset(lbuf,0,SIZE_LINE);
 }
 
+void clearibuf() {
+  memset(ibuf,0,SIZE_IBUF);
+}
+
 //*****************************
 // テキスト・中間コード変換用関数 *
 //*****************************
@@ -902,6 +930,8 @@ uint8_t* v2realAddr(uint16_t vadr) {
     radr = vadr - V_PRG_TOP + (uint8_t*)listbuf;
   } else if ((vadr >= V_MEM_TOP) && (vadr < V_MEM_TOP+LINELEN)) {  // ユーザーワーク領域
     radr = vadr - V_MEM_TOP + (uint8_t*)lbuf;    
+  } else if ((vadr >= V_MEM2_TOP) && (vadr < V_MEM2_TOP+SIZE_IBUF)) { // ユーザーワーク領域2
+    radr = vadr - V_MEM2_TOP + (uint8_t*)ibuf;    
   }
   return radr;
 }
@@ -1963,8 +1993,8 @@ void iprint(uint8_t devno, uint8_t nonewln) {
       break; 
     case I_SHARP:   len = iexp();    break; // 「#」 桁数を取得
     case I_CHR:     ichr(devno);     break; // CHR$()関数
-    case I_HEX:     ihex(devno);     break; // HEX$()関数
-    case I_BIN:     ibin(devno);     break; // BIN$()関数     
+    case I_HEX:     ihexbin(devno,0);break; // HEX$()関数
+    case I_BIN:     ihexbin(devno,1);break; // BIN$()関数     
 #if USE_DMP == 1
     case I_DMP:     idmp(devno);     break; // DMP$()関数
 #endif
@@ -2030,53 +2060,38 @@ int16_t iplus() {
 // The parser
 int16_t iexp() {
   int16_t value, tmp; // 値と演算値
-
-  value = iplus(); // 値を取得
+  value = iplus();    // 値を取得
   if (err)
     return -1; 
 
   // conditional expression 
-  for (;;) // 無限に繰り返す
-  switch(*cip++){  // 中間コードで分岐
-
-  case I_EQ:       //「=」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value == tmp); //真偽を判定
-    break;
-  case I_NEQ:      //「!=」の場合
-  case I_NEQ2:     //「<>」の場合
-  //case I_SHARP:  //「#」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value != tmp); //真偽を判定
-    break;
-  case I_LT:       //「<」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value < tmp); //真偽を判定
-    break;
-  case I_LTE:      //「<=」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value <= tmp); //真偽を判定
-    break;
-  case I_GT: //「>」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value > tmp); //真偽を判定
-    break;
-  case I_GTE:      //「>=」の場合
-    tmp = iplus(); // 演算値を取得
-    value = (value >= tmp); //真偽を判定
-    break;
- case I_LAND:      // AND (論理積)
-    tmp = iplus(); // 演算値を取得
-    value = (value && tmp); //真偽を判定
-    break;
- case I_LOR:       // OR (論理和)
-    tmp = iplus(); // 演算値を取得
-    value = (value || tmp); //真偽を判定
-    break; 
-  default: // 以上のいずれにも該当しなかった場合
-    cip--;    
-    return value;
+  for (;;) { // 無限に繰り返す
+    uint8_t code = *cip;
+    if (code >= I_EQ && code <= I_LOR) {
+      cip++;
+      tmp = iplus(); // 演算値を取得
+      if (code == I_EQ) {        //「=」の場合
+        value = (value == tmp);
+      } else if (code == I_NEQ || code == I_NEQ2) { //「!=」「<>」の場合
+        value = (value != tmp);
+      } else if (code == I_LT) {  //「<」の場合
+        value = (value < tmp);
+      } else if (code == I_LTE) { //「<=」の場合
+        value = (value <= tmp);
+      } else if (code == I_GT)  { //「>」の場合
+        value = (value > tmp);
+      } else if (code == I_GTE) { //「>=」の場合
+        value = (value >= tmp);
+      } else if (code == I_LAND){ // AND (論理積)
+        value = (value && tmp);
+      } else if (code == I_LOR){  // OR (論理和)
+        value = (value || tmp);    
+      }
+    } else {
+      break;
+    }
   }
+  return value;    
 }
 
 // Get value
@@ -2185,38 +2200,21 @@ int16_t ivalue() {
 #if USE_NEOPIXEL == 1
   case I_RGB:value = iRGB(); break;      // RGBコード変換
 #endif
-  case I_OUTPUT:   value = OUTPUT;         break; 
-  case I_INPUT_PU: value = INPUT_PULLUP;   break;
-  case I_INPUT_FL: value = INPUT;          break;
-
-  // 定数
-  case I_HIGH:  value = CONST_HIGH; break;
-  case I_LOW:   value = CONST_LOW;  break;
-  case I_ON:    value = CONST_ON;   break;
-  case I_OFF:   value = CONST_OFF;  break;
-  case I_LSB:   value = CONST_LSB;  break;
-  case I_MSB:   value = CONST_MSB;  break;
-  
-  // 画面サイズ定数の参照
-  case I_CW: value = c_getWidth()   ; break;
-  case I_CH: value = c_getHeight()  ; break;
-  
-  // キーボードコード
-  case I_KUP:    value = 0x1c   ; break;
-  case I_KDOWN:  value = 0x1d   ; break;
-  case I_KRIGHT: value = 0x1e   ; break;
-  case I_KLEFT:  value = 0x1f   ; break;
-  case I_KSPACE: value = 0x20   ; break;
-  case I_KENTER: value = 0x0d   ; break;
 
   // メモリ領域
   case I_MVAR:  value = V_VAR_TOP;   break;
   case I_MARRAY:value = V_ARRAY_TOP; break; 
   case I_MPRG:  value = V_PRG_TOP;   break;
   case I_MEM:   value = V_MEM_TOP;   break; 
+  case I_MEM2:  value = V_MEM2_TOP;  break; 
 
   default: //以上のいずれにも該当しなかった場合
     cip--;
+    // 定数
+    if (*cip >= I_OUTPUT && *cip <= I_CH) {
+       value = pgm_read_byte_near(&constValue[*cip-I_OUTPUT]);
+       cip++;
+    } else
 #if USE_ANADEF == 1
  #ifdef ARDUINO_AVR_MEGA2560
     if (*cip >= I_A0 && *cip <=I_A15) {
@@ -2235,69 +2233,48 @@ int16_t ivalue() {
   return value; //取得した値を持ち帰る
 }
 
-// multiply or divide calculation
+// 2因子演算 (* / % << >>  & | ^)
 int16_t imul() {
   int16_t value, tmp; // 値と演算値
-
   value = ivalue();   // 値を取得
   if (err)         
     return -1;
-  
-  for (;;) { //無限に繰り返す
-    switch(*cip++){   // 中間コードで分岐
-    case I_MUL:       // 掛け算の場合
-      tmp = ivalue(); // 演算値を取得
-      value *= tmp;   // 掛け算を実行
-      break;
-  
-    case I_DIV:       // 割り算の場合
-      tmp = ivalue(); // 演算値を取得
-      if (tmp == 0) { // もし演算値が0なら
-        err = ERR_DIVBY0;
-        return -1;
+       
+  for (;;) { //無限に繰り返す    
+    uint8_t code = *cip;
+    if(code >= I_MUL && code <= I_XOR) {
+      cip++;  
+      tmp = ivalue(); // 演算値を取得 
+      if (code == I_MUL) {           // 掛け算 
+        value *= tmp;     
+      } else if (code == I_DIV) {    // 割り算
+        if (tmp == 0) {
+          err = ERR_DIVBY0;
+        } else {
+          value /= tmp;   // 割り算を実行
+        }
+      } else if (code == I_DIVR) {   // 商余
+        if (tmp == 0) {
+          err = ERR_DIVBY0;
+        } else {
+          value %= tmp;
+        }
+      } else if (code == I_LSHIFT) { // << ビット左シフト
+        value =((uint16_t)value)<<tmp;       
+      } else if (code == I_RSHIFT) { // >> ビット右シフト
+        value =((uint16_t)value)>>tmp;  
+      } else if (code == I_AND) {    // & ビットAND
+        value =((uint16_t)value)&((uint16_t)tmp);        
+      } else if (code == I_OR) {     // | ビットOR
+        value =((uint16_t)value)|((uint16_t)tmp);        
+      } else if (code == I_XOR) {    // ^ ビットXOR
+        value =((uint16_t)value)^((uint16_t)tmp);        
       }
-      value /= tmp;   // 割り算を実行
-      break;
-  
-    case I_DIVR:      // 剰余の場合
-      tmp = ivalue(); // 演算値を取得
-      if (tmp == 0) { // もし演算値が0なら
-        err = ERR_DIVBY0;
-        return -1;
-      }
-      value %= tmp;   // 商余を実行
-      break; 
-  
-    case I_LSHIFT:    // シフト演算 "<<" の場合
-      tmp = ivalue(); // 演算値を取得
-      value =((uint16_t)value)<<tmp;
-      break;
-  
-    case I_RSHIFT:    // シフト演算 ">>" の場合
-      tmp = ivalue(); // 演算値を取得
-      value =((uint16_t)value)>>tmp;
-      break; 
-  
-     case I_AND:      // 算術積(ビット演算)
-      tmp = ivalue(); // 演算値を取得
-      value =((uint16_t)value)&((uint16_t)tmp);
-      break;
-  
-     case I_OR:       // 算術和(ビット演算)
-      tmp = ivalue(); // 演算値を取得
-      value =((uint16_t)value)|((uint16_t)tmp);
-      break;
-  
-     case I_XOR:      // 非排他OR(ビット演算)
-      tmp = ivalue(); // 演算値を取得
-      value =((uint16_t)value)^((uint16_t)tmp);
-      break;
-    
-    default: //以上のいずれにも該当しなかった場合
-      cip--;
-      return value; // 値を持ち帰る
+    } else {
+      return value; // 値を持ち帰る      
     }
-
+    if (err)
+      return -1;
   }
 }
 

@@ -50,6 +50,10 @@
 
 - 赤外線リモコン受信対応(IR() 関数)
 
+- NeoPixel(WS2812B)対応（リボン・テープ形状、リンク形状、8x8ドットマトリックス形状）
+
+- 8x8ドット 美咲フォント（シフトJIS 全角500字：英数記号・カタカナ・ひらがな・漢字）
+
 - 「 MW25616L実験用表示モジュール(Arduino 互換)」対応（※スケッチコンパイルの設定にて対応）
 
   - VFDディスプレイ制御（文字の表示、輝度設定等）
@@ -75,7 +79,7 @@
 
 ------
 
-﻿TOYOSHIKI Tiny BASIC for Arduino
+TOYOSHIKI Tiny BASIC for Arduino
 
 The code tested in Arduino Uno R3.<br>
 Use UART terminal, or temporarily use Arduino IDE serial monitor.

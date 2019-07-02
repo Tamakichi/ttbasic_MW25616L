@@ -2,6 +2,7 @@
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // BASIC 追加基本コマンド・関数 2019/06/08 by たま吉さん 
 // 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
+// 修正 2019/07/01 ihex()とibin()を統合し、メモリ制約
 //
 
 #include "Arduino.h"
@@ -12,9 +13,13 @@
 #include "src/lib/misakiSJIS500.h"
 #endif
 
-// 16進文字出力
+// 16進/2進文字出力
 // HEX$(数値,桁数) or HEX$(数値)
-void ihex(uint8_t devno) {
+// BIN$(数値, 桁数) or BIN$(数値)
+// 引数
+//  devno : 出力先デバイス
+//  mode  : 0:16進数 1:2進数
+void ihexbin(uint8_t devno, uint8_t mode) {
   int16_t value; // 値
   int16_t d = 0; // 桁数(0で桁数指定なし)
 
@@ -22,26 +27,13 @@ void ihex(uint8_t devno) {
   if (getParam(value,false)) return;  
   if (*cip == I_COMMA) {
      cip++;
-     if (getParam(d,0,4,false)) return;  
+     if (getParam(d,0,mode?16:4,false)) return;  
   }
   if (checkClose()) return;  
-  putHexnum(value, d, devno);    
-}
-
-// 2進数出力
-// BIN$(数値, 桁数) or BIN$(数値)
-void ibin(uint8_t devno) {
-  int16_t value; // 値
-  int16_t d = 0; // 桁数(0で桁数指定なし)
-
-  if (checkOpen()) return;
-  if (getParam(value,false)) return;  
-  if (*cip == I_COMMA) {
-     cip++;
-     if (getParam(d,0,16,false)) return;  
-  }
-  if (checkClose()) return;
-  putBinnum(value, d, devno);    
+  if (mode)
+    putBinnum(value, d, devno);
+  else
+    putHexnum(value, d, devno);
 }
 
 // CHR$() 全角対応
