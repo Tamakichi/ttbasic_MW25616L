@@ -56,8 +56,8 @@ void igpio() {
   int16_t pmode;  // 入出力モード
 
   // 入出力ピンの指定
-  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return; // ピン番号取得
-  if ( getParam(pmode, 0, 2, false) ) return;            // 入出力モードの取得
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) || // ピン番号取得
+       getParam(pmode, 0, 2, false) ) return;     // 入出力モードの取得
 
   // デジタル入出力として利用可能かチェック
   if (!IsIO_PIN(pinno)) {
@@ -71,8 +71,8 @@ void igpio() {
 void idwrite() {
   int16_t pinno,  data;
 
-  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return; // ピン番号取得
-  if ( getParam(data, false) ) return;                   // データ指定取得
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) || // ピン番号取得
+       getParam(data, false) ) return;            // データ指定取得
   data = data ? HIGH: LOW;
 
   if (! IsIO_PIN(pinno)) {
@@ -118,8 +118,8 @@ void ipwm() {
   int16_t pinno;      // ピン番号
   int16_t duty;       // デューティー値 0～255
 
-  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ) return;    // ピン番号取得
-  if ( getParam(duty,  0, 255, false) ) return;             // デューティー値
+  if ( getParam(pinno, 0, TT_MAX_PINNUM, true) ||    // ピン番号取得
+       getParam(duty,  0, 255, false) ) return;      // デューティー値
 
   // PWMピンとして利用可能かチェック
   if (!IsPWM_PIN(pinno)) {

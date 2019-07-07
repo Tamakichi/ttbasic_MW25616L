@@ -37,6 +37,10 @@
 //  修正 2019/06/30 行挿入不具合対応 inslist()のlenの型をuint8_tからuint16_tに変更
 //  修正 2019/07/02 imul(),iexp(),ivalue()の見直し(プログラムサイズのダイエット)
 //  修正 2019/07/02 定数MEM2(ユーザーワーク領域2)の追加
+//  修正 2019/07/07 仮想メモリアドレス定数取得の見直し（テーブル化）
+//  修正 2019/07/07 igoto()、igosub()をiGotoGosub()に統合
+//  修正 2019/07/07 RENUMの引数エラーチェックの強化
+//  修正 2019/07/07 NeoPixel制御コマンド追加
 //
 
 #include <Arduino.h>
@@ -75,6 +79,10 @@
 #define CHAR_DEL        0x02
 #define CHAR_CTRL_C     3
 
+// GOTO/GOSUBモード
+#define MODE_GOTO    0
+#define MODE_GOSUB   1
+
 //*** BASIC言語 キーワード定義 *********************
 // ※中間コードは basic.hに定義
 // キーワード定義(AVR SRAM消費軽減対策:フラシュメモリに配置）
@@ -98,17 +106,24 @@ KW(k022,"#");
 KW(k056,"!");KW(k057,"~");
 
 KW(k027,"@"); KW(k028,"RND"); KW(k029,"ABS"); KW(k030,"FREE");
-KW(k031,"LIST"); KW(k032,"RUN"); KW(k033,"NEW"); KW(k034,"CLS"); KW(k142,"DELETE"); 
+
+// システムコマンド
+KW(k032,"RUN"); KW(k031,"LIST"); KW(k090,"RENUM");KW(k142,"DELETE");  KW(k033,"NEW"); 
+KW(k044,"LOAD"); KW(k043,"SAVE"); KW(k046,"ERASE"); KW(k045,"FILES"); 
+KW(k134,"FORMAT"); KW(k141,"DRIVE");
+
+KW(k034,"CLS"); 
+ 
 #if USE_CMD_VFD == 1
 KW(k037,"VMSG");KW(k038,"VCLS"); KW(k039,"VSCROLL"); KW(k040,"VBRIGHT");
 KW(k041,"VDISPLAY"); KW(k106,"VPUT"); 
 #endif
-KW(k043,"SAVE"); KW(k044,"LOAD"); KW(k045,"FILES"); KW(k046,"ERASE"); KW(k047,"WAIT");
+KW(k047,"WAIT");
 KW(k048,"CHR$"); KW(k050,"HEX$"); KW(k051,"BIN$"); KW(k072,"STR$");
 KW(k074,"BYTE"); KW(k075,"LEN"); KW(k076,"ASC");
 KW(k052,"COLOR"); KW(k053,"ATTR"); KW(k054,"LOCATE"); KW(k055,"INKEY");
 KW(k078,"GPIO"); KW(k079,"OUT"); KW(k080,"POUT"); KW(k086,"IN"); KW(k087,"ANA");
-KW(k090,"RENUM");
+
 KW(k091,"TONE"); KW(k092,"NOTONE");
 #if USE_CMD_PLAY == 1
 KW(k093,"PLAY"); KW(k107,"TEMPO");
@@ -117,8 +132,8 @@ KW(k094,"SYSINFO");
 KW(k100,"PEEK"); KW(k101,"POKE"); KW(k102,"I2CW"); KW(k103,"I2CR"); KW(k104,"TICK"); 
 KW(k108,"MAP"); KW(k109,"GRADE"); KW(k110,"SHIFTOUT"); KW(k111,"PULSEIN");
 KW(k112,"DMP$");KW(k113,"SHIFTIN");
-
-KW(k095,"MEM");KW(k097,"VAR");KW(k098,"ARRAY");KW(k099,"PRG");KW(k172,"MEM2"); // 仮想アドレス
+// 仮想アドレス
+KW(k097,"VAR");KW(k098,"ARRAY");KW(k099,"PRG");KW(k095,"MEM");KW(k172,"MEM2");
 // 定数
 KW(k081,"OUTPUT"); KW(k082,"INPUT_PU"); KW(k083,"INPUT_FL");           // GPIOモード
 KW(k084,"OFF"); KW(k085,"ON"); KW(k088,"LOW"); KW(k089,"HIGH");        // ビット状態
@@ -132,7 +147,7 @@ KW(k123,"CW"); KW(k124,"CH");                                          // 画面
 KW(k125,"DATE"); KW(k126,"GETDATE"); KW(k127,"GETTIME"); KW(k128,"SETDATE");
 KW(k129,"DATE$");  
 #endif
-KW(k134,"FORMAT"); KW(k141,"DRIVE");
+
 // キャラクタディスプレイ
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
 KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE");
@@ -152,14 +167,14 @@ KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
 KW(k159,"IR");
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
 KW(k160,"GETFONT");
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
 KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
 KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");
-KW(k169,"RGB");;KW(k170,"NLINE"); KW(k171,"NSCROLL");
+KW(k169,"RGB");;KW(k170,"NLINE"); KW(k171,"NSCROLL"); KW(k173,"NPOINT");
 #endif
 KW(k071,"OK");
 
@@ -172,29 +187,36 @@ const char*  const kwtbl[] PROGMEM = {
   k007,k068,k008,                                    // "IF","ELSE","REM"
   k010,k011,k042,k012,                               // "INPUT","PRINT","?","LET"
   k013,k014,k036,k070,                               // ",",";",":","\'"
-  k015,k016,k019,k020,k035,k114,                     // "-","+","(",")","$","`"
+  k015,k016,k019,k020,k035,k114,                     // "-","+","(",")","$","`",
   k017,k018,k058,k059,k060,k062,k061,k065,           // 2因子演算子:   "*","/","%","<<",">>","&","|","^"
   k024,k066,k067,k026,k025,k023,k021,k063,k064,      // 条件判定演算子: "=","!=","<>","<","<=",">",">=","AND","OR"
   k022,                                              // "#",
   k056,k057,                                         // "!","~",                                          
   k027,k028,k029,k030,                               // "@","RND","ABS","FREE"
-  k031,k032,k033,k034,k142,                          // "LIST","RUN","NEW","CLS","DELETE"
+
+  // システムコマンド 
+  k032,k031,k090,k142,k033,                          // "RUN","LIST","RENUM","DELETE","NEW",
+  k044,k043,k046,k045,                               // "LOAD","SAVE","ERASE","FILES",
+  k134,k141,                                         // "FORMAT","DRIVE"
+
+  k034,                                               // "CLS"  
 #if USE_CMD_VFD == 1
   k037,k038,k039,k040,k041,k106,                     // "VMSG","VCLS","VSCROLL","VBRIGHT","VDISPLAY","VPUT"
 #endif
-  k043,k044,k045,k046,k047,                          // "SAVE","LOAD","FILES","ERASE","WAIT"
+  k047,                                              // "WAIT"
   k048,k050,k051,k072,                               // "CHR$","HEX$","BIN$","STR$","WSTR$"
   k074,k075,k076,                                    // "BYTE","LEN","ASC","WASC"
   k052,k053,k054,k055,                               // "COLOR","ATTR","LOCATE","INKEY"
   k078,k079,k080,                                    // "GPIO","OUT","POUT"
   k086,k087,                                         // "IN","ANA"
-  k090,                                              // "RENUM"
   k091,k092,                                         // "TONE","NOTONE"
 #if USE_CMD_PLAY == 1
   k093, k107,                                        // "PLAY","TEMPO"
 #endif
   k094,                                              // "SYSINFO"
-  k095,k097,k098,k099,k172,                          // "MEM","VAR","ARRAY","PRG","MEM2",
+  // 仮想アドレス
+  k097,k098,k099,k095,k172,                          // "VAR","ARRAY","PRG","MEM","MEM2",
+  
   k100,k101,k102,k103,k104,                          // "PEEK","POKE","I2CW","I2CR","TICK"
   k108,k109,k110,k111,k112,k113,                     // "MAP","GRADE","SHIFTOUT","PULSEIN","DMP$","SHIFTIN"
 
@@ -207,7 +229,6 @@ const char*  const kwtbl[] PROGMEM = {
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   k125,k126,k127,k128, k129,                         // "DATE","GETDATE","GETTIME","SETDATE","DATE$"
 #endif
-  k134,k141,                                         // "FORMAT","DRIVE"
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   k135,k136,k137,k138,k139,k140,                     // "CPRINT","CCLS","CCURS","CLOCATE","CCONS","CDISP";  
 #endif
@@ -221,12 +242,12 @@ const char*  const kwtbl[] PROGMEM = {
   k159,                                              // "IR"
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
   k160,
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
-  k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,
+  k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,k173,
 #endif
   k071,                                              // "OK"
 };
@@ -268,11 +289,11 @@ const PROGMEM unsigned char i_nsa[] = {
 #if USE_IR == 1
   I_IR,
 #endif
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
 I_GETFONT,
 #endif
 #if USE_NEOPIXEL == 1
- I_RGB,
+ I_RGB, I_NPOINT,
 #endif
 };
 
@@ -332,10 +353,15 @@ const PROGMEM uint8_t constValue[] = {
   c_getWidth(),c_getHeight(),
 };
 
+// 仮想アドレステーブル
+PROGMEM static const uint16_t vatable [] = {
+  V_VAR_TOP, V_ARRAY_TOP,  V_PRG_TOP, V_MEM_TOP, V_MEM2_TOP,  
+};
+
 //*** LIST出力整形例外チェック関数 ******************
 char sstyle(uint8_t code,const uint8_t *table, uint8_t count) {
   while(count--) //中間コードの数だけ繰り返す
-    if (code == pgm_read_byte_near(&table[count])) //もし該当の中間コードがあったら
+    if (code == pgm_read_byte(table + count)) //もし該当の中間コードがあったら
       return 1; //1を持ち帰る
   return 0; //（なければ）0を持ち帰る
 }
@@ -988,12 +1014,11 @@ uint8_t toktoi() {
   uint16_t value;         // 定数
   uint32_t tmp;           // 変換過程の定数
   uint8_t  cnt;           // 桁数
-
+  uint8_t  spcnt = 0;     // 先頭スペースカウント
   char* s = (char*)lbuf;       // 文字列バッファの内部を指すポインタ    
   while (*s) {                 // 文字列1行分の終端まで繰り返す
-    while (c_isspace(*s)) s++; // 空白を読み飛ばす
-
-    key = lookup(s, strlen(s)); // キーワードを切り出し、中間コードを取得
+    while (c_isspace(*s))s++;  // 空白を読み飛ばす
+    key = lookup(s, strlen(s));// キーワードを切り出し、中間コードを取得
     if (key >= 0) {    
       // 有効なキーワードあり
       if (len >= SIZE_IBUF - 1) {      // もし中間コード領域の容量チェック
@@ -1610,27 +1635,22 @@ uint8_t* getJumplp() {
   return lp;
 }
 
-// GOTO
-void igoto() {
+// GOTO/GOSUB
+// GOTO 行番号|ラベル、GOSUB 行番号|ラベル
+// mode 0:MODE_GOTO 1:MODE_GOSUB
+void iGotoGosub(uint8_t mode) {
   uint8_t* lp = getJumplp();     // 飛び先行ポインタ
   if (err)
     return;
-  clp = lp;        // 行ポインタを分岐先へ更新
-  cip = clp + 3;   // 中間コードポインタを先頭の中間コードに更新
-}
-
-// GOSUB
-void igosub() {
-  uint8_t* lp = getJumplp();     // 飛び先行ポインタ
-  if (err)
-    return;  
-  //ポインタを退避
-  if (gstki > SIZE_GSTK - 2) {   // もしGOSUBスタックがいっぱいなら
-    err = ERR_GSTKOF;            // エラー番号をセット
+  if (mode) {
+    //ポインタを退避
+    if (gstki > SIZE_GSTK - 2) { // もしGOSUBスタックがいっぱいなら
+      err = ERR_GSTKOF;          // エラー番号をセット
       return; 
+    }
+    gstk[gstki++] = clp;         // 行ポインタを退避
+    gstk[gstki++] = cip;         // 中間コードポインタを退避
   }
-  gstk[gstki++] = clp;           // 行ポインタを退避
-  gstk[gstki++] = cip;           // 中間コードポインタを退避
   clp = lp;                      // 行ポインタを分岐先へ更新
   cip = clp + 3;                 // 中間コードポインタを先頭の中間コードに更新
 }
@@ -1776,7 +1796,8 @@ void ilist(uint8_t devno=0) {
   }
 }
 
-// RENUME [開始番号,増分]
+// RENUME [開始番号[,増分]]
+// ※引数には、符号無し10進数定数のみ指定可能
 void irenum() {
   uint16_t startLineNo = 10;  // 開始行番号
   uint16_t increase = 10;     // 増分
@@ -1789,29 +1810,32 @@ void irenum() {
   uint16_t cnt;               // プログラム行数
   
   // 開始行番号、増分引数チェック
-  if (*cip == I_NUM) {               // もしRENUMT命令に引数があったら
-    startLineNo = getlineno(cip);    // 引数を読み取って開始行番号とする
-    cip+=3;
-    if (*cip == I_COMMA) {
-        cip++;                        // カンマをスキップ
-        if (*cip == I_NUM) {          // 増分指定があったら
-           increase = getlineno(cip); // 引数を読み取って増分とする
-        } else {
-           err = ERR_SYNTAX;          // カンマありで引数なしの場合はエラーとする
-           return;
-       }
+  if (*cip != I_EOL && *cip != I_COLON) {
+    // もしRENUMT命令に引数があったら
+    if (*cip == I_NUM) {
+      startLineNo = getlineno(cip);    // 引数を読み取って開始行番号とする
+      cip+=3;
+      if (*cip == I_COMMA) {
+          cip++;                        // カンマをスキップ
+          if (*cip == I_NUM) {          // 増分指定があったら
+             increase = getlineno(cip); // 引数を読み取って増分とする
+          } else {
+             err = ERR_SYNTAX;          // カンマありで引数なしの場合はエラーとする
+             return;
+         }
+      }
+    } else {
+      err = ERR_SYNTAX;                 // カンマありで引数なしの場合はエラーとする
+      return;    
     }
   }
 
   // 引数の有効性チェック
   cnt = countLines()-1;
-  if (startLineNo <= 0 || increase <= 0) {
+  if ( (startLineNo <= 0 || increase <= 0) ||
+       (startLineNo + increase * cnt > 32767) ) {
     err = ERR_VALUE;
     return;   
-  }
-  if (startLineNo + increase * cnt > 32767) {
-    err = ERR_VALUE;
-    return;       
   }
 
   // ブログラム中のGOTOの飛び先行番号を付け直す
@@ -2194,25 +2218,25 @@ int16_t ivalue() {
       
   case I_DIN: value = idread();  break;  // DIN(ピン番号)
   case I_ANA: value = iana();    break;  // ANA(ピン番号)
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
   case I_GETFONT:value = igetfont(); break; // 美咲フォントの取得
 #endif
 #if USE_NEOPIXEL == 1
-  case I_RGB:value = iRGB(); break;      // RGBコード変換
+  case I_RGB:    value = iRGB();    break;  // RGBコード変換
+  case I_NPOINT: value = inpoint(); break;  // NPOINT(X,Y)
 #endif
-
-  // メモリ領域
-  case I_MVAR:  value = V_VAR_TOP;   break;
-  case I_MARRAY:value = V_ARRAY_TOP; break; 
-  case I_MPRG:  value = V_PRG_TOP;   break;
-  case I_MEM:   value = V_MEM_TOP;   break; 
-  case I_MEM2:  value = V_MEM2_TOP;  break; 
 
   default: //以上のいずれにも該当しなかった場合
     cip--;
+    // 仮想アドレス
+    if (*cip >= I_MVAR && *cip <= I_MEM2) {
+       value = pgm_read_word(vatable + *cip - I_MVAR);
+       cip++;
+    } else
+    
     // 定数
     if (*cip >= I_OUTPUT && *cip <= I_CH) {
-       value = pgm_read_byte_near(&constValue[*cip-I_OUTPUT]);
+       value = pgm_read_byte(constValue + *cip-I_OUTPUT);
        cip++;
     } else
 #if USE_ANADEF == 1
@@ -2291,8 +2315,8 @@ uint8_t* iexe() {
     //中間コードを実行
     switch (*cip++) { //中間コードで分岐
     case I_STR:      ilabel();          break;  // 文字列の場合(ラベル)
-    case I_GOTO:     igoto();           break;  // GOTOの場合
-    case I_GOSUB:    igosub();          break;  // GOSUBの場合
+    case I_GOTO:     iGotoGosub(MODE_GOTO);  break;  // GOTOの場合
+    case I_GOSUB:    iGotoGosub(MODE_GOSUB); break;  // GOSUBの場合
     case I_RETURN:   ireturn();         break;  // RETURNの場合
     case I_FOR:      ifor();            break;  // FORの場合
     case I_NEXT:     inext();           break;  // NEXTの場合
@@ -2353,37 +2377,24 @@ uint8_t* iexe() {
     case I_NSET:      inset();          break;  // NSET
     case I_NPSET:     inpset();         break;  // NPSET        
     case I_NSHIFT:    inshift();        break;  // NSHIFT
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
     case I_NMSG:      inmsg();          break;  // NMSG
 #endif
     case I_NLINE:     inLine();         break;  // NLINE
     case I_NSCROLL:   inscroll();       break;  // NSCROLL
 #endif
-    case I_SYSINFO:   iinfo();          break;  // SYSINFO        
+    case I_SYSINFO:   iinfo();          break;  // SYSINFO           
 
-    // システムコマンド
-    case I_RUN:    // 中間コードがRUNの場合
-    case I_LIST:   // LIST
-    case I_RENUM:  // RENUM
-    case I_DELETE: // DELETE
-    case I_NEW:    // NEW
-    case I_LOAD:   // LOAD
-    case I_SAVE:   // SAVE
-    case I_ERASE:  // ERASE
-    case I_FILES:  // FILES
-    case I_FORMAT: // FORMAT
-    case I_DRIVE:  // DRIVE
-
-      err = ERR_COM; // エラー番号をセット
-      return NULL;   // 終了
-    
-    case I_COLON:    // 中間コードが「:」の場合
-      break; 
+    case I_COLON:     break; // 中間コードが「:」の場合   
       
-    default:         // 以上のいずれにも該当しない場合
+    default:                 // 以上のいずれにも該当しない場合
      cip--;
-     err = ERR_SYNTAX; //エラー番号をセット
-      break;
+     if (*cip >= I_RUN && *cip <= I_DRIVE) {
+        err = ERR_COM; // エラー番号をセット
+     } else {    
+        err = ERR_SYNTAX; //エラー番号をセット
+     }
+     break;
     } //中間コードで分岐の末尾
 
     if (err)
@@ -2404,7 +2415,7 @@ void irun() {
   lstki = 0;         // FORスタックインデクスを0に初期化
   clp = listbuf;     // 行ポインタをプログラム保存領域の先頭に設定
 
-  c_show_curs(0);    // カーソル消去
+ c_show_curs(0);    // カーソル消去
   while (*clp) {     // 行ポインタが末尾を指すまで繰り返す
     cip = clp + 3;   // 中間コードポインタを行番号の後ろに設定
     lp = iexe();     // 中間コードを実行して次の行の位置を得る
@@ -2419,6 +2430,7 @@ void irun() {
 uint8_t icom() {
   uint8_t rc = 1;
   cip = ibuf;       // 中間コードポインタを中間コードバッファの先頭に設定
+  //c_show_curs(0);  
   switch (*cip++) { // 中間コードポインタが指し示す中間コードによって分岐
   case I_RUN:   irun();     break;  // RUN命令
   case I_LIST:  ilist();    break;  // LIST
@@ -2431,7 +2443,7 @@ uint8_t icom() {
   case I_FILES: ifiles();   break;  // FILES
   case I_FORMAT:iformat();  break;  // FORMAT
   case I_DRIVE: idrive();   break;  // DRIVE
-  case I_CLS:   icls();  
+  case I_CLS:   icls();
   case I_REM:
   case I_SQUOT:
   case I_OK:    rc = 0;     break; // I_OKの場合
@@ -2442,6 +2454,7 @@ uint8_t icom() {
     c_show_curs(1);  
     break; //打ち切る
   }
+  //c_show_curs(1);      
   return rc;
 }
 

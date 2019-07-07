@@ -12,7 +12,7 @@
   #include "src/lib/NeoPixel.h"
   NeoPixel np;
 #endif
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
   #include "src/lib/misakiSJIS500.h"
 #endif
 
@@ -92,6 +92,23 @@ int16_t iRGB() {
   return (int16_t)rc;
 }
 
+// NeoPixel 8x8マトリックス 指定座標色コード取得
+// NPOINT(X,Y)
+// x,yが有効範囲内 0 ~ 255、指定範囲外 -1
+int16_t inpoint() {
+  int16_t x,y;
+  uint16_t rc = -1;
+
+  if (checkOpen() ||
+      getParam(x,true) || getParam(y,false) ||
+      checkClose()
+  ) return 0;
+
+  if (x>=0 && x < 8 && y>=0 && y < 8) 
+    rc = (np.getBuffer())[np.XYtoNo(x,y)];
+  return  rc;
+}
+
 // NeoPixel LED色設定
 // NSET 番号,色[,更新flg]
 void inset() {
@@ -142,7 +159,7 @@ void inshift() {
 }
 #endif
 
-#if (USE_NEOPIXEL == 1) && (USE_MISAKIFONT == 1)
+#if (USE_NEOPIXEL == 1) && (USE_MISAKIFONT != 0)
 // メッセージの表示
 void nmsg(const char* msg, uint16_t color, uint16_t tm) {
   uint8_t  fnt[8];

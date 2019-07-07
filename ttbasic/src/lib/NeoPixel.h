@@ -12,6 +12,7 @@ class NeoPixel {
 
  public:
   void setBuffer(uint8_t* ptr,uint8_t sz);
+  uint8_t *getBuffer() {return buf;};
   void init();
   void update();
   void cls(uint8_t flgUpdate=false);

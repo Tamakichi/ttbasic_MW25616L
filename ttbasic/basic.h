@@ -49,32 +49,39 @@ enum {
   I_COMMA, I_SEMI,I_COLON, I_SQUOT,
   I_MINUS, I_PLUS, I_OPEN, I_CLOSE, I_DOLLAR, I_APOST,
   
-  // 2因子演算子: "*","/","%","<<",">>","&","|","^"
+// 2因子演算子: "*","/","%","<<",">>","&","|","^"
   I_MUL, I_DIV, I_DIVR, I_LSHIFT, I_RSHIFT, I_AND, I_OR, I_XOR,
 
-  // 条件判定演算子
+// 条件判定演算子
   I_EQ, I_NEQ, I_NEQ2,I_LT,I_LTE, I_GT, I_GTE, I_LAND, I_LOR,
 
   I_SHARP, 
   I_LNOT, I_BITREV, 
   I_ARRAY, I_RND, I_ABS, I_SIZE,
-  I_LIST, I_RUN, I_NEW, I_CLS, I_DELETE,
+
+// システムコマンド
+  I_RUN, I_LIST, I_RENUM, I_DELETE, I_NEW, 
+  I_LOAD, I_SAVE, I_ERASE, I_FILES,
+  I_FORMAT, I_DRIVE,
+  I_CLS,
 #if USE_CMD_VFD == 1
   I_VMSG, I_VCLS, I_VSCROLL, I_VBRIGHT, I_VDISPLAY, I_VPUT,
 #endif
-  I_SAVE, I_LOAD, I_FILES, I_ERASE, I_WAIT,
+  I_WAIT,
   I_CHR,  I_HEX, I_BIN, I_STRREF,
   I_BYTE, I_LEN, I_ASC,
   I_COLOR, I_ATTR, I_LOCATE, I_INKEY,
   I_GPIO, I_DOUT, I_POUT,
   I_DIN, I_ANA,
-  I_RENUM,
   I_TONE, I_NOTONE,
 #if USE_CMD_PLAY == 1
   I_PLAY, I_TEMPO,
 #endif
   I_SYSINFO,
-  I_MEM, I_MVAR, I_MARRAY,I_MPRG, I_MEM2,
+
+// 仮想アドレス
+  I_MVAR, I_MARRAY, I_MPRG, I_MEM, I_MEM2, 
+  
   I_PEEK, I_POKE, I_I2CW, I_I2CR, I_TICK,
   I_MAP, I_GRADE, I_SHIFTOUT, I_PULSEIN, I_DMP, I_SHIFTIN,
 
@@ -87,7 +94,6 @@ enum {
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   I_DATE, I_GETDATE, I_GETTIME, I_SETDATE, I_DATESTR,  // RTC関連コマンド(5)  
 #endif 
-  I_FORMAT, I_DRIVE,
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   I_CPRINT, I_CCLS, I_CCURS, I_CLOCATE, I_CCONS, I_CDISP,
 #endif
@@ -101,12 +107,13 @@ enum {
   I_IR,
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
   I_GETFONT,
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL
-  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_RGB, I_NLINE,I_NSCROLL,
+  I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, 
+  I_RGB, I_NLINE,I_NSCROLL, I_NPOINT,
 #endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
@@ -167,8 +174,8 @@ uint8_t getParam(int16_t& prm, int16_t v_min,int16_t v_max,uint8_t flgCmma);
 uint8_t getParam(uint16_t& prm, uint8_t flgCmma);
 uint8_t getParam(int16_t& prm, uint8_t flgCmma);
 uint8_t getParam(int32_t& prm, uint8_t flgCmma);
-int16_t getparam();
 
+int16_t getparam();
 uint8_t checkOpen();
 uint8_t checkClose();
 void iskip();
@@ -192,7 +199,6 @@ char c_isdigit(char c);
 void putlist(uint8_t* ip, uint8_t devno=0);
 void inew(void);
 void putHexnum(int16_t value, uint8_t d, uint8_t devno);
-void idelete(); 
 
 // コンソール画面関連
 void init_console();
@@ -314,5 +320,5 @@ void inshift();
 void inmsg();
 void inLine();
 void inscroll();
-
+int16_t inpoint();
 #endif

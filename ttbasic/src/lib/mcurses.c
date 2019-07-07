@@ -455,8 +455,8 @@ uint_fast8_t getch(void) {
             buf[idx] = '\0';
 
             for (idx = 0; idx < MAX_KEYS; idx++)  {
-               if (!strcmp_P(buf,(char*)pgm_read_word(&function_keys[idx])))   {
-                  ch = pgm_read_byte(&function_keys_code[idx]);
+               if (!strcmp_P(buf,(char*)pgm_read_word(function_keys+idx)))   {
+                  ch = pgm_read_byte(function_keys_code+idx);
                   break;
                 }
             }

@@ -9,7 +9,7 @@
 #include "basic.h"
 
 // 美咲フォントの利用
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
 #include "src/lib/misakiSJIS500.h"
 #endif
 
@@ -23,8 +23,7 @@ void ihexbin(uint8_t devno, uint8_t mode) {
   int16_t value; // 値
   int16_t d = 0; // 桁数(0で桁数指定なし)
 
-  if (checkOpen()) return;
-  if (getParam(value,false)) return;  
+  if (checkOpen() || getParam(value,false) ) return;  
   if (*cip == I_COMMA) {
      cip++;
      if (getParam(d,0,mode?16:4,false)) return;  
@@ -60,8 +59,7 @@ void ichr(uint8_t devno) {
 // MAP(V,L1,H1,L2,H2)関数の処理
 int16_t imap() {
   int32_t value,l1,h1,l2,h2,rc;
-  if (checkOpen()) return 0;
-  if ( getParam(value,true)||getParam(l1,true)||
+  if (checkOpen() || getParam(value,true)||getParam(l1,true)||
        getParam(h1,true)||getParam(l2,true)||getParam(h2,false) ) 
     return 0;
   if (checkClose()) return 0;
@@ -78,11 +76,12 @@ int16_t imap() {
 int16_t igrade() {
   int16_t value,arrayIndex,len,rc=-1;
 
-  if (checkOpen()) return 0;
-  if ( getParam(value, true) )  return 0;
-  if ( getParam(arrayIndex, 0, SIZE_ARRY-1, true) )  return 0;
-  if ( getParam(len, 0, SIZE_ARRY, false) )  return 0;
-  if ( checkClose()) return 0;    
+  if (checkOpen() ||
+      getParam(value, true) ||
+      getParam(arrayIndex, 0, SIZE_ARRY-1, true) ||
+      getParam(len, 0, SIZE_ARRY, false) ||
+      checkClose()
+  ) return 0;    
  
   if ( arrayIndex+len > SIZE_ARRY ) {
     err = ERR_VALUE;
@@ -372,7 +371,7 @@ void ipoke() {
 }
 
 // 美咲フォントの利用
-#if USE_MISAKIFONT == 1
+#if USE_MISAKIFONT != 0
 // フォントデータ取得
 // GETFONT(仮想アドレス,SJISコード)
 // 該当フォントあり 0、該当フォントなし 1
