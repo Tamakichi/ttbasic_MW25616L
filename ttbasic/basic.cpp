@@ -41,6 +41,7 @@
 //  修正 2019/07/07 igoto()、igosub()をiGotoGosub()に統合
 //  修正 2019/07/07 RENUMの引数エラーチェックの強化
 //  修正 2019/07/07 NeoPixel制御コマンド追加
+//  修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
 //
 
 #include <Arduino.h>
@@ -59,7 +60,7 @@
 //*** 仮想メモリ定義 ******************************
 #define V_VRAM_TOP  0x0000    // VRAM領域先頭
 #define V_VAR_TOP   0x1900    // 変数領域先頭
-#define V_ARRAY_TOP 0x1AA0    // 配列領域先頭
+#define V_ARRAY_TOP 0x1AA0    // 配列領域先頭getParam
 #define V_PRG_TOP   0x1BA0    // プログラム領域先頭
 #define V_MEM_TOP   0x2BA0    // ユーザー作業領域先頭
 #define V_MEM2_TOP  0x2CA0    // ユーザー作業領域2先頭
@@ -78,10 +79,6 @@
 #define CHAR_ESCAPE     0x1B 
 #define CHAR_DEL        0x02
 #define CHAR_CTRL_C     3
-
-// GOTO/GOSUBモード
-#define MODE_GOTO    0
-#define MODE_GOSUB   1
 
 //*** BASIC言語 キーワード定義 *********************
 // ※中間コードは basic.hに定義
@@ -174,7 +171,11 @@ KW(k160,"GETFONT");
 #if USE_NEOPIXEL == 1
 KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
 KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");
-KW(k169,"RGB");;KW(k170,"NLINE"); KW(k171,"NSCROLL"); KW(k173,"NPOINT");
+KW(k169,"RGB");KW(k170,"NLINE"); KW(k171,"NSCROLL"); KW(k173,"NPOINT");
+#endif
+// タイマーイベントの利用
+#if USE_TIMEREVENT == 1
+KW(k175,"TIMER");
 #endif
 KW(k071,"OK");
 
@@ -248,6 +249,10 @@ const char*  const kwtbl[] PROGMEM = {
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
   k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,k173,
+#endif
+// タイマーイベントの利用
+#if USE_TIMEREVENT == 1
+  k175,
 #endif
   k071,                                              // "OK"
 };
@@ -329,6 +334,9 @@ const PROGMEM unsigned char i_sf[]  = {
 #if USE_NEOPIXEL == 1
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_NLINE,I_NSCROLL,
 #endif
+#if USE_TIMEREVENT == 1
+  I_TIMER,
+#endif
 };
 
 // 後ろが変数、数値、定数の場合、後ろに空白を空ける中間コード
@@ -408,6 +416,9 @@ KW(e25,"Illegal MML");
 KW(e26,"I2C Device Error");
 KW(e27,"Bad filename");
 KW(e28,"Device full");
+#if USE_TIMEREVENT == 1
+KW(e29,"No Timer");
+#endif
 
 // エラーメッセージテーブル
 const char*  const errmsg[] PROGMEM = {
@@ -418,6 +429,9 @@ const char*  const errmsg[] PROGMEM = {
   e25,
 #endif
   e26,e27,e28,
+#if USE_TIMEREVENT == 1
+  e29,
+#endif
 };
 
 //*** エラー発生情報保持変数 ************************
@@ -1637,12 +1651,19 @@ uint8_t* getJumplp() {
 
 // GOTO/GOSUB
 // GOTO 行番号|ラベル、GOSUB 行番号|ラベル
-// mode 0:MODE_GOTO 1:MODE_GOSUB
-void iGotoGosub(uint8_t mode) {
-  uint8_t* lp = getJumplp();     // 飛び先行ポインタ
+// mode 0:MODE_GOTO 1:MODE_GOSUB 2:MODE_ONGOTO 3:MODE_ONGOSUB
+void iGotoGosub(uint8_t mode, uint16_t evtlp) {
+  uint8_t* lp;
+
+  if (mode == MODE_ONGOTO || mode == MODE_ONGOSUB)
+    lp = evtlp;
+  else 
+    lp = getJumplp();     // 飛び先行ポインタ
+
   if (err)
     return;
-  if (mode) {
+    
+  if (mode == MODE_GOSUB || mode == MODE_ONGOSUB) {
     //ポインタを退避
     if (gstki > SIZE_GSTK - 2) { // もしGOSUBスタックがいっぱいなら
       err = ERR_GSTKOF;          // エラー番号をセット
@@ -1982,6 +2003,16 @@ char top = 't';
   // コマンドエントリー数
   c_puts_P((const char*)F("\nCommand table:"));
   putnum((int16_t)(I_EOL+1),0);
+/*
+  // タイマーイベント
+  putnum((int16_t)(te_period),0);
+  c_puts_P((const char*)F("\nTAction:"));
+  putnum((int16_t)(te_action),0);
+  c_puts_P((const char*)F("\nTActive:"));
+  putnum((int16_t)(te_flgActive),0);
+  c_puts_P((const char*)F("\nTEvent:"));
+  putnum((int16_t)(te_flgEvent),0);
+*/
   newline();
 #endif  
 }
@@ -2383,6 +2414,10 @@ uint8_t* iexe() {
     case I_NLINE:     inLine();         break;  // NLINE
     case I_NSCROLL:   inscroll();       break;  // NSCROLL
 #endif
+#if USE_TIMEREVENT == 1
+    case I_ON:        iOnTimer();       break;  // ON TIMER
+    case I_TIMER:     iTimer();         break;  // TIMER
+#endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO           
 
     case I_COLON:     break; // 中間コードが「:」の場合   
@@ -2399,6 +2434,11 @@ uint8_t* iexe() {
 
     if (err)
       return NULL;
+#if USE_TIMEREVENT == 1
+    doTimerEvent();
+    if (err)
+      return NULL;
+#endif
   } //行末まで繰り返すの末尾
   return clp + *clp; //次に実行するべき行のポインタを持ち帰る
 }
@@ -2424,6 +2464,9 @@ void irun() {
     clp = lp;        // 行ポインタを次の行の位置へ移動
   }
   c_show_curs(1);    // カーソル表示
+#if USE_TIMEREVENT == 1
+  clerTimerEvent();
+#endif
 }
 
 //Command precessor
@@ -2480,6 +2523,9 @@ void basic() {
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
   // OLEDキャラクタディスプレイ
   OLEDinit();
+#endif
+#if USE_TIMEREVENT == 1
+  initTimerEvent();
 #endif
 
   inew(); // 実行環境を初期化

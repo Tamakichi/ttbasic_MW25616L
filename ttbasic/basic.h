@@ -2,6 +2,8 @@
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // ヘッダファイル（定数、変数・関数宣言） 2019/06/08 by たま吉さん 
 // 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
+// 修正 2019/07/07 NeoPixel制御コマンド追加
+// 修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
 //
 
 #ifndef __basic_h__
@@ -115,6 +117,10 @@ enum {
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, 
   I_RGB, I_NLINE,I_NSCROLL, I_NPOINT,
 #endif
+// タイマーイベントの利用
+#if USE_TIMEREVENT == 1
+  I_TIMER,
+#endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
   I_EOL
@@ -145,7 +151,16 @@ enum {
   ERR_I2CDEV,
   ERR_FNAME,
   ERR_NOFSPACE,
+#if USE_TIMEREVENT == 1
+  ERR_NOTIMER,
+#endif
 };
+
+// GOTO/GOSUBモード
+#define MODE_GOTO    0
+#define MODE_GOSUB   1
+#define MODE_ONGOTO  2
+#define MODE_ONGOSUB 3
 
 //*** インタプリタ用グローバル変数外部参照宣言 ******
 extern uint8_t err;                  // エラーコード
@@ -155,6 +170,7 @@ extern int16_t var[26];              // 変数領域（A-Z×2バイト)
 extern uint8_t lbuf[SIZE_LINE];      // コマンドラインバッファ
 extern uint8_t listbuf[SIZE_LIST];   // プログラム領域
 extern uint8_t* cip;                 // インタプリタ中間コード参照位置
+extern uint8_t* clp;                 // カレント行先頭ポインタ
 extern uint8_t prevPressKey;         // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
 
 //*** 関数のプロトタイプ宣言 **********************
@@ -199,6 +215,8 @@ char c_isdigit(char c);
 void putlist(uint8_t* ip, uint8_t devno=0);
 void inew(void);
 void putHexnum(int16_t value, uint8_t d, uint8_t devno);
+uint8_t* getJumplp();
+void iGotoGosub(uint8_t mode, uint16_t evtlp = 0);
 
 // コンソール画面関連
 void init_console();
@@ -321,4 +339,17 @@ void inmsg();
 void inLine();
 void inscroll();
 int16_t inpoint();
+
+// タイマーイベント
+void iOnTimer();
+void iTimer();
+void initTimerEvent();
+void clerTimerEvent();
+void doTimerEvent();
+
+extern int16_t   te_period;              // 周期(ミリ秒)
+extern uint8_t   te_action;              // 0:未登録、 1:I_GOTO、2:I_GOSUB
+extern uint8_t   te_flgActive;           // タイマー割り込み実行状態 (0:未実行、1:実行中)
+extern volatile uint8_t te_flgEvent;     // 発生フラグ（キュー）
+
 #endif
