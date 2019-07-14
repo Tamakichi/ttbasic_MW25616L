@@ -42,6 +42,7 @@
 //  修正 2019/07/07 RENUMの引数エラーチェックの強化
 //  修正 2019/07/07 NeoPixel制御コマンド追加
 //  修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
+//  修正 2019/07/14 キーワードの表示変更（命令文は大文字+小文字)
 //
 
 #include <Arduino.h>
@@ -84,10 +85,10 @@
 // ※中間コードは basic.hに定義
 // キーワード定義(AVR SRAM消費軽減対策:フラシュメモリに配置）
 
-KW(k000,"GOTO"); KW(k001,"GOSUB"); KW(k002,"RETURN"); KW(k069,"END");
-KW(k003,"FOR"); KW(k004,"TO"); KW(k005,"STEP"); KW(k006,"NEXT");
-KW(k007,"IF"); KW(k068,"ELSE"); KW(k008,"REM");
-KW(k010,"INPUT"); KW(k011,"PRINT"); KW(k042,"?"); KW(k012,"LET");
+KW(k000,"GoTo"); KW(k001,"GoSub"); KW(k002,"Return"); KW(k069,"End");
+KW(k003,"For"); KW(k004,"To"); KW(k005,"Step"); KW(k006,"Next");
+KW(k007,"If"); KW(k068,"Else"); KW(k008,"Rem");
+KW(k010,"Input"); KW(k011,"Print"); KW(k042,"?"); KW(k012,"Let");
 KW(k013,","); KW(k014,";"); KW(k036,":"); KW(k070,"\'"); 
 
 // 2項演算子
@@ -96,59 +97,59 @@ KW(k015,"-"); KW(k016,"+");
 KW(k017,"*");KW(k018,"/");KW(k058,"%");KW(k059,"<<");KW(k060,">>");KW(k062,"&");KW(k061,"|");KW(k065,"^");
 // 条件判定演算子
 KW(k024,"=");KW(k066,"!=");KW(k067,"<>");KW(k026,"<");KW(k025,"<=");KW(k023,">"); KW(k021,">=");
-KW(k063,"AND");KW(k064,"OR");
+KW(k063,"And");KW(k064,"Or");
 
 KW(k019,"("); KW(k020,")");KW(k035,"$"); KW(k114,"`");
 KW(k022,"#"); 
 KW(k056,"!");KW(k057,"~");
 
-KW(k027,"@"); KW(k028,"RND"); KW(k029,"ABS"); KW(k030,"FREE");
+KW(k027,"@"); KW(k028,"Rnd"); KW(k029,"Abs"); KW(k030,"Free");
 
 // システムコマンド
-KW(k032,"RUN"); KW(k031,"LIST"); KW(k090,"RENUM");KW(k142,"DELETE");  KW(k033,"NEW"); 
-KW(k044,"LOAD"); KW(k043,"SAVE"); KW(k046,"ERASE"); KW(k045,"FILES"); 
-KW(k134,"FORMAT"); KW(k141,"DRIVE");
+KW(k032,"Run"); KW(k031,"List"); KW(k090,"Renum");KW(k142,"Delete");  KW(k033,"New"); 
+KW(k044,"Load"); KW(k043,"Save"); KW(k046,"Erase"); KW(k045,"Files"); 
+KW(k134,"Format"); KW(k141,"Drive");
 
-KW(k034,"CLS"); 
+KW(k034,"Cls"); 
  
 #if USE_CMD_VFD == 1
-KW(k037,"VMSG");KW(k038,"VCLS"); KW(k039,"VSCROLL"); KW(k040,"VBRIGHT");
-KW(k041,"VDISPLAY"); KW(k106,"VPUT"); 
+KW(k037,"Vmsg");KW(k038,"Vcls"); KW(k039,"Vscroll"); KW(k040,"Vbright");
+KW(k041,"Vdisplay"); KW(k106,"Vput"); 
 #endif
-KW(k047,"WAIT");
-KW(k048,"CHR$"); KW(k050,"HEX$"); KW(k051,"BIN$"); KW(k072,"STR$");
-KW(k074,"BYTE"); KW(k075,"LEN"); KW(k076,"ASC");
-KW(k052,"COLOR"); KW(k053,"ATTR"); KW(k054,"LOCATE"); KW(k055,"INKEY");
-KW(k078,"GPIO"); KW(k079,"OUT"); KW(k080,"POUT"); KW(k086,"IN"); KW(k087,"ANA");
+KW(k047,"Wait");
+KW(k048,"Chr$"); KW(k050,"Hex$"); KW(k051,"Bin$"); KW(k072,"Str$");
+KW(k074,"Byte"); KW(k075,"Len"); KW(k076,"Asc");
+KW(k052,"Color"); KW(k053,"Attr"); KW(k054,"Locate"); KW(k055,"Inkey");
+KW(k078,"Gpio"); KW(k079,"Out"); KW(k080,"Pout"); KW(k086,"In"); KW(k087,"Ana");
 
-KW(k091,"TONE"); KW(k092,"NOTONE");
+KW(k091,"Tone"); KW(k092,"NoTone");
 #if USE_CMD_PLAY == 1
-KW(k093,"PLAY"); KW(k107,"TEMPO");
+KW(k093,"Play"); KW(k107,"Tempo");
 #endif
-KW(k094,"SYSINFO");
-KW(k100,"PEEK"); KW(k101,"POKE"); KW(k102,"I2CW"); KW(k103,"I2CR"); KW(k104,"TICK"); 
-KW(k108,"MAP"); KW(k109,"GRADE"); KW(k110,"SHIFTOUT"); KW(k111,"PULSEIN");
-KW(k112,"DMP$");KW(k113,"SHIFTIN");
+KW(k094,"SysInfo");
+KW(k100,"Peek"); KW(k101,"Poke"); KW(k102,"I2cw"); KW(k103,"I2cr"); KW(k104,"Tick"); 
+KW(k108,"Map"); KW(k109,"Grade"); KW(k110,"ShiftOut"); KW(k111,"PulseIn");
+KW(k112,"Dmp$");KW(k113,"ShiftIn");
 // 仮想アドレス
-KW(k097,"VAR");KW(k098,"ARRAY");KW(k099,"PRG");KW(k095,"MEM");KW(k172,"MEM2");
+KW(k097,"Var");KW(k098,"Array");KW(k099,"Prg");KW(k095,"Mem");KW(k172,"Mem2");
 // 定数
-KW(k081,"OUTPUT"); KW(k082,"INPUT_PU"); KW(k083,"INPUT_FL");           // GPIOモード
-KW(k084,"OFF"); KW(k085,"ON"); KW(k088,"LOW"); KW(k089,"HIGH");        // ビット状態
-KW(k121,"LSB"); KW(k122,"MSB");                                        // ビット方向
-KW(k115,"KUP"); KW(k116,"KDOWN"); KW(k117,"KRIGHT");KW(k118,"KLEFT");  // キーボードコード
-KW(k119,"KSPACE");KW(k120,"KENTER");                                   // キーボードコード
-KW(k123,"CW"); KW(k124,"CH");                                          // 画面サイズ
+KW(k081,"Output"); KW(k082,"Input_PU"); KW(k083,"Input_FL");           // GPIOモード
+KW(k084,"Off"); KW(k085,"On"); KW(k088,"Low"); KW(k089,"High");        // ビット状態
+KW(k121,"Lsb"); KW(k122,"Msb");                                        // ビット方向
+KW(k115,"Kup"); KW(k116,"Kdown"); KW(k117,"Kright");KW(k118,"Kleft");  // キーボードコード
+KW(k119,"Kspace");KW(k120,"Kenter");                                   // キーボードコード
+KW(k123,"Cw"); KW(k124,"Ch");                                          // 画面サイズ
 
 // RTC関連コマンド(5)
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
-KW(k125,"DATE"); KW(k126,"GETDATE"); KW(k127,"GETTIME"); KW(k128,"SETDATE");
-KW(k129,"DATE$");  
+KW(k125,"Date"); KW(k126,"GetDate"); KW(k127,"GetTime"); KW(k128,"SetDate");
+KW(k129,"Date$");  
 #endif
 
 // キャラクタディスプレイ
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
-KW(k135,"CPRINT");KW(k136,"CCLS");KW(k137,"CCURS");KW(k138,"CLOCATE");
-KW(k139,"CCONS");KW(k140,"CDISP");
+KW(k135,"Cprint");KW(k136,"Ccls");KW(k137,"Ccurs");KW(k138,"Clocate");
+KW(k139,"Ccons");KW(k140,"Cdisp");
 #endif
 // アナログ入力ピン
 #if USE_ANADEF == 1
@@ -161,21 +162,21 @@ KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
 #endif
 // 赤外線リモコン入力
 #if USE_IR == 1
-KW(k159,"IR");
+KW(k159,"Ir");
 #endif
 // 美咲フォントの利用
 #if USE_MISAKIFONT != 0
-KW(k160,"GETFONT");
+KW(k160,"GetFont");
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1
-KW(k161,"NINIT"); KW(k162,"NBRIGHT"); KW(k163,"NCLS"); KW(k164,"NSET");
-KW(k165,"NPSET"); KW(k166,"NMSG"); KW(k167,"NUPDATE");KW(k168,"NSHIFT");
-KW(k169,"RGB");KW(k170,"NLINE"); KW(k171,"NSCROLL"); KW(k173,"NPOINT");
+KW(k161,"Ninit"); KW(k162,"Nbright"); KW(k163,"Ncls"); KW(k164,"Nset");
+KW(k165,"Npset"); KW(k166,"Nmsg"); KW(k167,"Nupdate");KW(k168,"Nshift");
+KW(k169,"Rgb");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
 #endif
 // タイマーイベントの利用
 #if USE_TIMEREVENT == 1
-KW(k175,"TIMER");
+KW(k175,"Timer");
 #endif
 KW(k071,"OK");
 
@@ -786,7 +787,6 @@ void putlist(uint8_t* ip, uint8_t devno) {
     } else if (*ip == I_VAR) {
       ip++; //ポインタを変数番号へ進める
       c_putch(*ip++ + 'A',devno); // 変数名を取得して出力
-
       if (!nospaceb(*ip))         // もし例外にあたらなければ
         c_putch(' ',devno);       // 空白を出力
 

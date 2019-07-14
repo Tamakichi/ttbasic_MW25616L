@@ -1,6 +1,6 @@
 # 豊四季タイニーBASIC for Arduino機能拡張版
 
-![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg)  
+![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg) ![image](./image/top04.jpg)  
 
 ![image/screen.png](image/screen01.png)  
 
@@ -54,6 +54,8 @@
 
 - 8x8ドット 美咲フォント（シフトJIS 全角500字：英数記号・カタカナ・ひらがな・漢字）
 
+- タイマーイベント（ON TIMER ミリ秒 GOSUB|GOTO、TIMER ON|OFFコマンド）
+
 - 「 MW25616L実験用表示モジュール(Arduino 互換)」対応（※スケッチコンパイルの設定にて対応）
 
   - VFDディスプレイ制御（文字の表示、輝度設定等）
@@ -66,14 +68,41 @@
 - mcursesライブラリ（組込済み）  
 <https://github.com/ChrisMicro/mcurses>
 
-- MW25616L実験用表示モジュール用デモプログラム（組込済み）  
+- MW25616L実験用表示モジュール用デモプログラム（一部組込済み）  
 <http://vfd-fun.blogspot.jp/>
+
+- TimerOne Library（組込済み）  
+<https://github.com/PaulStoffregen/TimerOne>
 
 その他の利用方法については、付属のリファレンス・マニュアルを参照して下さい。  
 
 ## スケッチコンパイルオプションについて
 
-デフォルトでは「 MW25616L実験用表示モジュール(Arduino 互換)」のVFD及び漢字ROMの利用が無効になっています。有効にするには、ttconfig.hの「機能利用オプション設定」のUSE_CMD_VFDの設定を1に変更して下さい。  
+`ttconfig.h`の下記の設定にて利用する機能を有効・無効化することが出来ます。
+開発バージョン V0.07では、追加・開発対象の機能は無効化しています。  
+利用目的に応じて有効にして下さい。  
+
+```cpp
+// ** 機能利用オプション設定 *************************************************
+#define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_CMD_I2C    0  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_PULSEIN    0  // PULSEIN関数の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_SHIFTIN    0  // SHIFTIN関数の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_SHIFTOUT   0  // SHIFTOUTコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_CMD_VFD    0  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_RTC_DS3231 0  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_I2CEEPROM  0  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:0)
+#define USE_SYSINFO    0  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:0)
+#define USE_GRADE      0  // GRADE関数(0:利用しない 1:利用する デフォルト:0)
+#define USE_DMP        0  // DMP$関数(0:利用しない 1:利用する デフォルト:0)
+#define USE_IR         0  // IR関数(0:利用しない 1:利用する デフォルト:0)
+#define USE_ANADEF     0  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
+#define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
+#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:1)
+#define USE_NEOPIXEL   1  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_TIMEREVENT 1  // タイマーイベントの利用(0:利用しない 1:利用する デフォルト:1)
+#endif
+```
 
 以下はオリジナル版のドキュメントです。  
 

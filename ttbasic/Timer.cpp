@@ -8,7 +8,7 @@
 #include "basic.h"
 
 #if USE_TIMEREVENT == 1
-#include <TimerOne.h>
+#include "src/lib/TimerOne.h"
 
 // タイマーイベント管理情報
 int16_t  te_period;               // 周期(ミリ秒)

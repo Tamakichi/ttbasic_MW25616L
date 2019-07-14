@@ -58,7 +58,7 @@
 #define USE_IR         0  // IR関数(0:利用しない 1:利用する デフォルト:0)
 #define USE_ANADEF     0  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
 #define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
-#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:2)
+#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:1)
 #define USE_NEOPIXEL   1  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:1)
-#define USE_TIMEREVENT 1  // タイマーイベントの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_TIMEREVENT 1  // タイマーイベントの利用(0:利用しない 1:利用する デフォルト:1)
 #endif
