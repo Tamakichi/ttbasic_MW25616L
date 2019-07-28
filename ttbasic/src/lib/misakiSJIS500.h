@@ -9,7 +9,7 @@
 #define misakiSJIS500_h
 
 #include <avr/pgmspace.h>
-#include <arduino.h>
+#include <Arduino.h>
 
 #define FTABLESIZE     (sizeof ftable / sizeof ftable[0])       // フォントテーブルデータサイズ
 #define FONT_LEN       7         // 1フォントのバイト数

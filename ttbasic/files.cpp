@@ -2,6 +2,7 @@
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // ファイルシステム機能に関する機能（内部EEPROM、外部接続I2C EEPROM（オプション機能））
 // 2019/06/08 by たま吉さん 
+// 修正 2019/07/27 LOADコマンドのエラーコード不具合対応
 
 #include "Arduino.h"
 #include "basic.h"
@@ -63,13 +64,15 @@ void iLoadSave(uint8_t mode,uint8_t flgskip) {
     uint8_t fname[TI2CEEPROM_FNAMESIZ+1];
     uint8_t rc;   
     if (getFname(fname, TI2CEEPROM_FNAMESIZ)) return;  // ファイル名の取得
-
-    if (mode)
+    if (mode) {
       rc = rom.save(fname, 0, listbuf, SIZE_LIST);     // プログラムのセーブ  
-    else
+    } else {
       rc = rom.load(fname, 0, listbuf, SIZE_LIST);     // プログラムのロード
-    if (rc == 2)  err = ERR_NOFSPACE;
-    else if (rc)  err = ERR_I2CDEV;
+    }
+    if (rc == 2)
+      err = mode? ERR_NOFSPACE :ERR_FNAME;
+    else if (rc)
+      err = ERR_I2CDEV;
   } else 
  #endif 
   {

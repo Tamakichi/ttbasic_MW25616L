@@ -4,6 +4,7 @@
 // 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 // 修正 2019/07/07 NeoPixel制御コマンド追加
 // 修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
+// 修正 2019/07/27 エラーメッセージ表示（エラーコードずれ）不具合対応
 //
 
 #ifndef __basic_h__
@@ -147,7 +148,9 @@ enum {
   ERR_CTR_C,
   ERR_VALUE,
   ERR_GPIO,
+#if USE_CMD_PLAY == 1
   ERR_PLAY_MML,
+#endif
   ERR_I2CDEV,
   ERR_FNAME,
   ERR_NOFSPACE,
