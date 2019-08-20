@@ -5,6 +5,9 @@
 // 修正 2019/07/07 NeoPixel制御コマンド追加
 // 修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
 // 修正 2019/07/27 エラーメッセージ表示（エラーコードずれ）不具合対応
+// 修正 2019/08/07 外部割込みイベント機能の追加(ON PIN)
+// 修正 2019/08/08 LEDコマンド、定数の追加
+// 修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
 //
 
 #ifndef __basic_h__
@@ -92,7 +95,8 @@ enum {
   I_OUTPUT, I_INPUT_PU, I_INPUT_FL,
   I_OFF, I_ON,  I_LOW, I_HIGH,I_LSB, I_MSB,
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
-  I_CW, I_CH,
+  I_CW, I_CH,  I_CHANGE, I_FALLING, I_RISING,
+  I_LED,
 
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   I_DATE, I_GETDATE, I_GETTIME, I_SETDATE, I_DATESTR,  // RTC関連コマンド(5)  
@@ -118,9 +122,9 @@ enum {
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, 
   I_RGB, I_NLINE,I_NSCROLL, I_NPOINT,
 #endif
-// タイマーイベントの利用
-#if USE_TIMEREVENT == 1
-  I_TIMER,
+// タイマー・外部割込みイベントの利用
+#if USE_EVENT == 1
+  I_TIMER, I_PIN, I_SLEEP,
 #endif
   I_OK, 
   I_NUM, I_VAR, I_STR, I_HEXNUM, I_BINNUM,
@@ -154,8 +158,8 @@ enum {
   ERR_I2CDEV,
   ERR_FNAME,
   ERR_NOFSPACE,
-#if USE_TIMEREVENT == 1
-  ERR_NOTIMER,
+#if USE_EVENT == 1
+  ERR_NOEDEF,
 #endif
 };
 
@@ -298,6 +302,7 @@ int16_t ipulseIn();
 int16_t iir();
 void i2c_init();
 int16_t ii2crw(uint8_t mode);
+void iled();
 
 // I2C RTC DS3231
 void isetDate();
@@ -344,15 +349,14 @@ void inscroll();
 int16_t inpoint();
 
 // タイマーイベント
-void iOnTimer();
+void iOnPinTimer();
 void iTimer();
 void initTimerEvent();
 void clerTimerEvent();
 void doTimerEvent();
 
-extern int16_t   te_period;              // 周期(ミリ秒)
-extern uint8_t   te_action;              // 0:未登録、 1:I_GOTO、2:I_GOSUB
-extern uint8_t   te_flgActive;           // タイマー割り込み実行状態 (0:未実行、1:実行中)
-extern volatile uint8_t te_flgEvent;     // 発生フラグ（キュー）
-
+void clerExtEvent();
+void doExtEvent();
+void iPin();
+void isleep();
 #endif

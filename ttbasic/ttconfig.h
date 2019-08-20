@@ -3,6 +3,7 @@
 // 豊四季Tiny BASIC for Arduino uno 構築コンフィグレーション
 // 修正 2019/06/11 GETFONTコマンド利用オプション設定の追加（美咲フォント対応）
 // 修正 2019/07/13 NeoPixel、タイマーイベント利用オプション設定の追加
+// 修正 2019/08/04 外部割込みイベント利用オプション設定の追加
 //
 
 #ifndef __ttconfig_h__
@@ -58,7 +59,8 @@
 #define USE_IR         0  // IR関数(0:利用しない 1:利用する デフォルト:0)
 #define USE_ANADEF     0  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
 #define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
-#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:1)
+#define USE_MISAKIFONT 2  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:1)
 #define USE_NEOPIXEL   1  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:1)
-#define USE_TIMEREVENT 1  // タイマーイベントの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_EVENT      1  // タイマー・外部割込みイベントの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_SLEEP      1  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:0) ※USE_EVENTを利用必須、利用非推奨
 #endif

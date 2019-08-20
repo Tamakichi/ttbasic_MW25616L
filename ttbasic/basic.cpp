@@ -43,6 +43,10 @@
 //  修正 2019/07/07 NeoPixel制御コマンド追加
 //  修正 2019/07/13 TIMERイベント機能の追加(ON TIMER)
 //  修正 2019/07/14 キーワードの表示変更（命令文は大文字+小文字)
+//  修正 2019/08/07 外部割込みイベント機能の追加(ON PIN)
+//  修正 2019/08/08 LEDコマンド、定数の追加
+//  修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
+//  修正 2019/08/19 PINキーワードをEXTに変更(ピン設定と混乱するため)
 //
 
 #include <Arduino.h>
@@ -139,7 +143,8 @@ KW(k121,"Lsb"); KW(k122,"Msb");                                        // ビッ
 KW(k115,"Kup"); KW(k116,"Kdown"); KW(k117,"Kright");KW(k118,"Kleft");  // キーボードコード
 KW(k119,"Kspace");KW(k120,"Kenter");                                   // キーボードコード
 KW(k123,"Cw"); KW(k124,"Ch");                                          // 画面サイズ
-
+KW(k177,"Change");KW(k178,"Falling");KW(k179,"Rising");                // ピン変化
+KW(k180,"LED");                                                        // LED(=13) or LEDコマンド
 // RTC関連コマンド(5)
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
 KW(k125,"Date"); KW(k126,"GetDate"); KW(k127,"GetTime"); KW(k128,"SetDate");
@@ -174,10 +179,11 @@ KW(k161,"Ninit"); KW(k162,"Nbright"); KW(k163,"Ncls"); KW(k164,"Nset");
 KW(k165,"Npset"); KW(k166,"Nmsg"); KW(k167,"Nupdate");KW(k168,"Nshift");
 KW(k169,"Rgb");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
 #endif
-// タイマーイベントの利用
-#if USE_TIMEREVENT == 1
-KW(k175,"Timer");
+// タイマー・外部割込みイベントの利用
+#if USE_EVENT == 1
+KW(k175,"Timer"); KW(k176,"Ext"); KW(k181,"Sleep");
 #endif
+
 KW(k071,"OK");
 
 //*** キーワードテーブル ***************************
@@ -226,7 +232,8 @@ const char*  const kwtbl[] PROGMEM = {
   k081,k082,k083,                                    // "OUTPUT","INPUT_PU","INPUT_FL"
   k084,k085,k088,k089,k121,k122,                     // "OFF","ON","LOW","HIGH","LSB","MSB",
   k115,k116,k117,k118,k119,k120,                     // "KUP","KDOWN","KRIGHT","KLEFT","KSPACE","KENTER"
-  k123,k124,                                         // "CW","CH"
+  k123,k124,k177,k178,k179,                          // "CW","CH","Change","Falling","Rising"
+  k180,                                              // "LED",
 
 #if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
   k125,k126,k127,k128, k129,                         // "DATE","GETDATE","GETTIME","SETDATE","DATE$"
@@ -251,9 +258,10 @@ const char*  const kwtbl[] PROGMEM = {
 #if USE_NEOPIXEL == 1
   k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,k173,
 #endif
-// タイマーイベントの利用
-#if USE_TIMEREVENT == 1
-  k175,
+// イベントの利用
+#if USE_EVENT == 1
+  k175,k176,k181,
+  
 #endif
   k071,                                              // "OK"
 };
@@ -335,8 +343,8 @@ const PROGMEM unsigned char i_sf[]  = {
 #if USE_NEOPIXEL == 1
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_NLINE,I_NSCROLL,
 #endif
-#if USE_TIMEREVENT == 1
-  I_TIMER,
+#if USE_EVENT == 1
+  I_TIMER, I_PIN,
 #endif
 };
 
@@ -360,6 +368,8 @@ const PROGMEM uint8_t constValue[] = {
   CONST_OFF,CONST_ON,CONST_LOW,CONST_HIGH,CONST_LSB,CONST_MSB,
   0x1c,0x1d,0x1e,0x1f,0x20,0x0d,
   c_getWidth(),c_getHeight(),
+  1,2,3,
+  13,
 };
 
 // 仮想アドレステーブル
@@ -417,8 +427,8 @@ KW(e25,"Illegal MML");
 KW(e26,"I2C Device Error");
 KW(e27,"Bad filename");
 KW(e28,"Device full");
-#if USE_TIMEREVENT == 1
-KW(e29,"No Timer");
+#if USE_EVENT == 1
+KW(e29,"No event");
 #endif
 
 // エラーメッセージテーブル
@@ -430,7 +440,7 @@ const char*  const errmsg[] PROGMEM = {
   e25,
 #endif
   e26,e27,e28,
-#if USE_TIMEREVENT == 1
+#if USE_EVENT == 1
   e29,
 #endif
 };
@@ -2266,7 +2276,7 @@ int16_t ivalue() {
     } else
     
     // 定数
-    if (*cip >= I_OUTPUT && *cip <= I_CH) {
+    if (*cip >= I_OUTPUT && *cip <= I_LED) {
        value = pgm_read_byte(constValue + *cip-I_OUTPUT);
        cip++;
     } else
@@ -2369,7 +2379,8 @@ uint8_t* iexe() {
     case I_INPUT:    iinput();          break;  // INPUT
     case I_POKE:     ipoke();           break;  // POKEコマンド
     case I_GPIO:     igpio();           break;  // GPIO
-    case I_DOUT:     idwrite();         break;  // OUT    
+    case I_DOUT:     idwrite();         break;  // OUT
+    case I_LED:      iled();            break;  // LED
     case I_POUT:     ipwm();            break;  // PWM 
     case I_SHIFTOUT: ishiftOut();       break;  // ShiftOut
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
@@ -2414,9 +2425,11 @@ uint8_t* iexe() {
     case I_NLINE:     inLine();         break;  // NLINE
     case I_NSCROLL:   inscroll();       break;  // NSCROLL
 #endif
-#if USE_TIMEREVENT == 1
-    case I_ON:        iOnTimer();       break;  // ON TIMER
+#if USE_EVENT == 1
+    case I_ON:        iOnPinTimer();    break;  // ON TIMER| ON PIN
     case I_TIMER:     iTimer();         break;  // TIMER
+    case I_PIN:       iPin();           break;  // PIN
+    case I_SLEEP:     isleep();         break;  // SLEEP
 #endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO           
 
@@ -2434,8 +2447,11 @@ uint8_t* iexe() {
 
     if (err)
       return NULL;
-#if USE_TIMEREVENT == 1
+#if USE_EVENT == 1
     doTimerEvent();
+    if (err)
+      return NULL;
+    doExtEvent();
     if (err)
       return NULL;
 #endif
@@ -2464,8 +2480,9 @@ void irun() {
     clp = lp;        // 行ポインタを次の行の位置へ移動
   }
   c_show_curs(1);    // カーソル表示
-#if USE_TIMEREVENT == 1
+#if USE_EVENT == 1
   clerTimerEvent();
+  clerExtEvent();
 #endif
 }
 
@@ -2524,8 +2541,9 @@ void basic() {
   // OLEDキャラクタディスプレイ
   OLEDinit();
 #endif
-#if USE_TIMEREVENT == 1
+#if USE_EVENT == 1
   initTimerEvent();
+  clerExtEvent();
 #endif
 
   inew(); // 実行環境を初期化

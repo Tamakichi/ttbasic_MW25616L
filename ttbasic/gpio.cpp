@@ -1,7 +1,8 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // GPIO機能の実装
-// 2019/06/08 by たま吉さん 
+// 作成 2019/06/08 by たま吉さん 
+// 修正 2019/08/08 LEDコマンド、定数の追加
 
 #include "Arduino.h"
 #include "basic.h"
@@ -82,6 +83,17 @@ void idwrite() {
   
   // データ出力
   digitalWrite(pinno, data);
+}
+
+// LEDピンデジタル出力
+void iled() {
+  int16_t pinno,  data;
+
+  if ( getParam(data, false) ) return;            // データ指定取得
+  data = data ? HIGH: LOW; 
+  // データ出力
+  pinMode(LED_BUILTIN,OUTPUT);
+  digitalWrite(LED_BUILTIN, data);
 }
 
 // GPIO ピンデジタル入力

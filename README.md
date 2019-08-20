@@ -54,7 +54,11 @@
 
 - 8x8ドット 美咲フォント（シフトJIS 全角500字：英数記号・カタカナ・ひらがな・漢字）
 
-- タイマーイベント（ON TIMER ミリ秒 GOSUB|GOTO、TIMER ON|OFFコマンド）
+- タイマーイベント（ON TIMER ミリ秒 GOSUB|GOTO,TIMER ON|OFFコマンド）
+
+- 外部割込みイベント（ON EXT ピン番号,LOW|RISING|FALLING|CHANGE GOSUB|GOTO、TIMER ON|OFFコマンド）
+
+- SLEEP機能（SLEEPコマンド)
 
 - 「 MW25616L実験用表示モジュール(Arduino 互換)」対応（※スケッチコンパイルの設定にて対応）
 
