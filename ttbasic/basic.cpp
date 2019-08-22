@@ -47,6 +47,8 @@
 //  修正 2019/08/08 LEDコマンド、定数の追加
 //  修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
 //  修正 2019/08/19 PINキーワードをEXTに変更(ピン設定と混乱するため)
+//  修正 2019/08/21 OUT、INの事前GPIO設定を不要に変更
+//  修正 2019/08/21 キーボード変更(POUT=>PWM、INPUT_FL=>FLOAT、INPUT_PU=>PULLUP
 //
 
 #include <Arduino.h>
@@ -124,7 +126,7 @@ KW(k047,"Wait");
 KW(k048,"Chr$"); KW(k050,"Hex$"); KW(k051,"Bin$"); KW(k072,"Str$");
 KW(k074,"Byte"); KW(k075,"Len"); KW(k076,"Asc");
 KW(k052,"Color"); KW(k053,"Attr"); KW(k054,"Locate"); KW(k055,"Inkey");
-KW(k078,"Gpio"); KW(k079,"Out"); KW(k080,"Pout"); KW(k086,"In"); KW(k087,"Ana");
+KW(k078,"Gpio"); KW(k079,"Out"); KW(k080,"PWM"); KW(k086,"In"); KW(k087,"Ana");
 
 KW(k091,"Tone"); KW(k092,"NoTone");
 #if USE_CMD_PLAY == 1
@@ -137,12 +139,12 @@ KW(k112,"Dmp$");KW(k113,"ShiftIn");
 // 仮想アドレス
 KW(k097,"Var");KW(k098,"Array");KW(k099,"Prg");KW(k095,"Mem");KW(k172,"Mem2");
 // 定数
-KW(k081,"Output"); KW(k082,"Input_PU"); KW(k083,"Input_FL");           // GPIOモード
+KW(k081,"Output"); KW(k082,"PullUp"); KW(k083,"Float");                // GPIOモード
 KW(k084,"Off"); KW(k085,"On"); KW(k088,"Low"); KW(k089,"High");        // ビット状態
-KW(k121,"Lsb"); KW(k122,"Msb");                                        // ビット方向
-KW(k115,"Kup"); KW(k116,"Kdown"); KW(k117,"Kright");KW(k118,"Kleft");  // キーボードコード
-KW(k119,"Kspace");KW(k120,"Kenter");                                   // キーボードコード
-KW(k123,"Cw"); KW(k124,"Ch");                                          // 画面サイズ
+KW(k121,"LSB"); KW(k122,"MSB");                                        // ビット方向
+KW(k115,"Up"); KW(k116,"Down"); KW(k117,"Right");KW(k118,"Left");      // キーボードコード
+KW(k119,"Space");KW(k120,"Enter");                                     // キーボードコード
+KW(k123,"CW"); KW(k124,"CH");                                          // 画面サイズ
 KW(k177,"Change");KW(k178,"Falling");KW(k179,"Rising");                // ピン変化
 KW(k180,"LED");                                                        // LED(=13) or LEDコマンド
 // RTC関連コマンド(5)
@@ -177,7 +179,7 @@ KW(k160,"GetFont");
 #if USE_NEOPIXEL == 1
 KW(k161,"Ninit"); KW(k162,"Nbright"); KW(k163,"Ncls"); KW(k164,"Nset");
 KW(k165,"Npset"); KW(k166,"Nmsg"); KW(k167,"Nupdate");KW(k168,"Nshift");
-KW(k169,"Rgb");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
+KW(k169,"RGB");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
 #endif
 // タイマー・外部割込みイベントの利用
 #if USE_EVENT == 1
@@ -2257,7 +2259,7 @@ int16_t ivalue() {
     }
     break;
       
-  case I_DIN: value = idread();  break;  // DIN(ピン番号)
+  case I_DIN: value = iIN();  break;  // DIN(ピン番号)
   case I_ANA: value = iana();    break;  // ANA(ピン番号)
 #if USE_MISAKIFONT != 0
   case I_GETFONT:value = igetfont(); break; // 美咲フォントの取得
@@ -2379,7 +2381,7 @@ uint8_t* iexe() {
     case I_INPUT:    iinput();          break;  // INPUT
     case I_POKE:     ipoke();           break;  // POKEコマンド
     case I_GPIO:     igpio();           break;  // GPIO
-    case I_DOUT:     idwrite();         break;  // OUT
+    case I_DOUT:     iout();            break;  // OUT
     case I_LED:      iled();            break;  // LED
     case I_POUT:     ipwm();            break;  // PWM 
     case I_SHIFTOUT: ishiftOut();       break;  // ShiftOut

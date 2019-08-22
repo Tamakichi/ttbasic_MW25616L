@@ -3,6 +3,9 @@
 // GPIO機能の実装
 // 作成 2019/06/08 by たま吉さん 
 // 修正 2019/08/08 LEDコマンド、定数の追加
+// 修正 2019/08/21 OUT、INの事前GPIO設定を不要に変更
+// 修正 2019/08/22 SHIFTIN、PULSEINの事前GPIO設定を不要に変更,ピンモード引数の追加
+//
 
 #include "Arduino.h"
 #include "basic.h"
@@ -69,43 +72,54 @@ void igpio() {
 }
 
 // GPIO ピンデジタル出力
-void idwrite() {
+void iout() {
   int16_t pinno,  data;
 
   if ( getParam(pinno, 0, TT_MAX_PINNUM, true) || // ピン番号取得
        getParam(data, false) ) return;            // データ指定取得
-  data = data ? HIGH: LOW;
 
+  data = data ? HIGH: LOW;
   if (! IsIO_PIN(pinno)) {
     err = ERR_GPIO;
     return;
   }
-  
-  // データ出力
-  digitalWrite(pinno, data);
+  pinMode(pinno, OUTPUT);     // ピンモード設定
+  digitalWrite(pinno, data);  // データ出力
 }
 
 // LEDピンデジタル出力
-void iled() {
+void iled() {  
   int16_t pinno,  data;
 
   if ( getParam(data, false) ) return;            // データ指定取得
   data = data ? HIGH: LOW; 
+
   // データ出力
   pinMode(LED_BUILTIN,OUTPUT);
   digitalWrite(LED_BUILTIN, data);
 }
 
 // GPIO ピンデジタル入力
-// IN(ピン番号)
-int16_t idread() {
-  int16_t value;
-  if ( !(checkOpen()|| getParam(value,0,TT_MAX_PINNUM, false) || checkClose()) ) {
-    if ( !IsIO_PIN(value) )  {
-      err = ERR_GPIO;
-    } else {
-      value = digitalRead(value);  // 入力値取得
-    }
+// IN(ピン番号[,INPUT|PULLUP)
+int16_t iIN() {
+  int16_t pinNo, mode = INPUT, value;
+
+  if ( checkOpen()|| getParam(pinNo,0,TT_MAX_PINNUM, false) ) return; // ピン番号取得
+  if (*cip == I_COMMA) {
+    cip++;
+    if (getParam(mode, false)) return 0;
+    if ( (mode !=INPUT) && (mode != INPUT_PULLUP) ) {
+      err = ERR_VALUE;
+      return 0;
+    }    
+  }
+  if (checkClose()) return 0;
+  
+  if ( !IsIO_PIN(pinNo) )  {
+    err = ERR_GPIO;
+  } else {
+    pinMode(pinNo,mode);
+    value = digitalRead(pinNo);  // 入力値取得
   }
   return value;
 }
@@ -233,18 +247,20 @@ uint8_t _shiftIn( uint8_t ulDataPin, uint8_t ulClockPin, uint8_t ulBitOrder, uin
 }
 #endif
 
-// SHIFTIN関数 SHIFTIN(データピン, クロックピン, オーダ[,ロジック])
+// SHIFTIN関数 SHIFTIN(データピン, ピンモード, クロックピン, オーダ[,ロジック])
+// ピンモードは、FLOAT(0) or PULLUP(2)
 int16_t ishiftIn() {
 #if USE_SHIFTIN == 1
   int16_t rc;
   int16_t dataPin, clockPin;
-  int16_t bitOrder;
+  int16_t mode,bitOrder;
   int16_t lgc = HIGH;
 
   if (checkOpen() ||
-      getParam(dataPin, 0,TT_MAX_PINNUM, true) ||
-      getParam(clockPin,0,TT_MAX_PINNUM, true) ||
-      getParam(bitOrder,0,1, false)
+      getParam(dataPin , 0,TT_MAX_PINNUM, true) ||  // データピン
+      getParam(mode    , 0, true) ||                // ピンモード
+      getParam(clockPin,0,TT_MAX_PINNUM, true) ||   // クロックピン
+      getParam(bitOrder,0,1, false)                 // オーダー
    ) return 0;
  
   if (*cip == I_COMMA) {
@@ -252,6 +268,24 @@ int16_t ishiftIn() {
     if (getParam(lgc,LOW, HIGH, false)) return 0;
   }
   if (checkClose()) return 0;
+  
+  // ピン利用の有効性チェック
+  if ( !IsIO_PIN(dataPin) ||  !IsIO_PIN(clockPin) ) {
+    err = ERR_GPIO;
+    return;
+  }
+  
+  // ピンモードのチェック
+  if ( (mode != INPUT) && (mode != INPUT_PULLUP) ) { 
+    err = ERR_VALUE;
+    return 0;
+  }
+
+  // ピンモードの設定
+  pinMode(dataPin,  mode);     // データピン
+  pinMode(clockPin, OUTPUT);   // クロックピン
+
+  // データの読み取り
   rc = _shiftIn((uint8_t)dataPin, (uint8_t)clockPin, (uint8_t)bitOrder, lgc);
   return rc;
 #else
@@ -259,19 +293,20 @@ int16_t ishiftIn() {
 #endif
 }
 
-// PULSEIN関数 PULSEIN(ピン, 検出モード, タイムアウト時間[,単位指定])
+// PULSEIN関数 PULSEIN(入力ピン, ピンモード, 検出モード, タイムアウト時間[,単位指定])
 int16_t ipulseIn() {
 #if USE_PULSEIN == 1
   int32_t rc=0;
-  int16_t dataPin;       // ピン
-  int16_t mode;          // 検出モード
+  int16_t dataPin, mode; // ピン
+  int16_t sigMode;       // 信号検出モード
   int16_t tmout;         // タイムアウト時間(0:ミリ秒 1:マイクロ秒)
   int16_t scale =1;      // 戻り値単位指定 (1～32767)
 
   // コマンドライン引数の取得
   if (checkOpen() ||                              // '('のチェック
       getParam(dataPin, 0,TT_MAX_PINNUM, true) || // ピン
-      getParam(mode, LOW, HIGH, true) ||          // 検出モード
+      getParam(mode, LOW, HIGH, true) ||          // ピンモード
+      getParam(sigMode, LOW, HIGH, true) ||       // 信号検出モード
       getParam(tmout,0,32767, false)              // タイムアウト時間(ミリ秒)
    ) return 0;           
 
@@ -280,8 +315,24 @@ int16_t ipulseIn() {
     if (getParam(scale,1, 32767, false)) return 0;        // 戻り値単位指定 (1～32767)
   }
   if (checkClose()) return 0;                             // ')'のチェック
+
+  // ピン利用の有効性チェック
+  if ( !IsIO_PIN(dataPin) ) {
+    err = ERR_GPIO;
+    return;
+  }
   
-  rc = pulseIn(dataPin, mode, ((uint32_t)tmout)*1000)/scale;  // パルス幅計測
+  // ピンモードのチェック
+  if ( (mode != INPUT) && (mode != INPUT_PULLUP) ) { 
+    err = ERR_VALUE;
+    return 0;
+  }
+
+  // ピンモードの設定
+  pinMode(dataPin,  mode);     // データピン
+
+  // データの読み取り
+  rc = pulseIn(dataPin, sigMode, ((uint32_t)tmout)*1000)/scale;  // パルス幅計測
   if (rc > 32767) rc = -1; // オーバーフロー時は-1を返す
   return rc;
 #else

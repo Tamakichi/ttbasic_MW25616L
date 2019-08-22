@@ -292,8 +292,8 @@ void idrive();
 
 // GPIO
 void igpio();
-void idwrite();
-int16_t idread();
+void iout();
+int16_t iIN();
 int16_t iana();
 void ipwm() ;
 int16_t ishiftIn();

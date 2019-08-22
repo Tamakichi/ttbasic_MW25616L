@@ -41,6 +41,7 @@ void handleTimerEvent() {
 }
 
 // 外部割込み1イベントハンドラサブルーチン
+// 10ミリ秒以内の連続変化は無視する（チャタリング防止）
 void handleExt1EventSub(uint8_t no) {
   //Serial.println("Fire!");
   if (millis() - eevt[no].prevInterrupt <= 10) 
@@ -247,7 +248,7 @@ void WDT_start(uint16_t wt) {
     t = WDT_8S;
   else if (wt >= 4000) 
     t = WDT_4S;
-  else if (wt >= 2000) 
+  else if (wt >= 2000)
     t = WDT_2S;
   else if (wt >= 1000) 
     t = WDT_1S;
