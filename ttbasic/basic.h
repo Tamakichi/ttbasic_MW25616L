@@ -70,7 +70,7 @@ enum {
   I_LOAD, I_SAVE, I_ERASE, I_FILES,
   I_FORMAT, I_DRIVE,
   I_CLS,
-#if USE_CMD_VFD == 1
+#if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
   I_VMSG, I_VCLS, I_VSCROLL, I_VBRIGHT, I_VDISPLAY, I_VPUT,
 #endif
   I_WAIT,
@@ -80,7 +80,7 @@ enum {
   I_GPIO, I_DOUT, I_POUT,
   I_DIN, I_ANA,
   I_TONE, I_NOTONE,
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
   I_PLAY, I_TEMPO,
 #endif
   I_SYSINFO,
@@ -98,32 +98,32 @@ enum {
   I_CW, I_CH,  I_CHANGE, I_FALLING, I_RISING,
   I_LED,
 
-#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
+#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   I_DATE, I_GETDATE, I_GETTIME, I_SETDATE, I_DATESTR,  // RTC関連コマンド(5)  
 #endif 
-#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
+#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   I_CPRINT, I_CCLS, I_CCURS, I_CLOCATE, I_CCONS, I_CDISP,
 #endif
-#if USE_ANADEF == 1
+#if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
   #ifdef ARDUINO_AVR_MEGA2560
     I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
   #endif  
 #endif
-#if USE_IR == 1
+#if USE_IR == 1 || USE_ALL_KEYWORD == 1
   I_IR,
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT != 0
+#if USE_MISAKIFONT != 0 || USE_ALL_KEYWORD == 1
   I_GETFONT,
 #endif
 // NeoPixelの利用
-#if USE_NEOPIXEL
+#if USE_NEOPIXEL || USE_ALL_KEYWORD == 1
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, 
   I_RGB, I_NLINE,I_NSCROLL, I_NPOINT,
 #endif
 // タイマー・外部割込みイベントの利用
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   I_TIMER, I_PIN, I_SLEEP,
 #endif
   I_OK, 
@@ -152,13 +152,13 @@ enum {
   ERR_CTR_C,
   ERR_VALUE,
   ERR_GPIO,
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
   ERR_PLAY_MML,
 #endif
   ERR_I2CDEV,
   ERR_FNAME,
   ERR_NOFSPACE,
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   ERR_NOEDEF,
 #endif
 };

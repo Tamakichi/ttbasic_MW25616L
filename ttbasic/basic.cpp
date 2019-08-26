@@ -118,7 +118,7 @@ KW(k134,"Format"); KW(k141,"Drive");
 
 KW(k034,"Cls"); 
  
-#if USE_CMD_VFD == 1
+#if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
 KW(k037,"Vmsg");KW(k038,"Vcls"); KW(k039,"Vscroll"); KW(k040,"Vbright");
 KW(k041,"Vdisplay"); KW(k106,"Vput"); 
 #endif
@@ -129,7 +129,7 @@ KW(k052,"Color"); KW(k053,"Attr"); KW(k054,"Locate"); KW(k055,"Inkey");
 KW(k078,"Gpio"); KW(k079,"Out"); KW(k080,"PWM"); KW(k086,"In"); KW(k087,"Ana");
 
 KW(k091,"Tone"); KW(k092,"NoTone");
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
 KW(k093,"Play"); KW(k107,"Tempo");
 #endif
 KW(k094,"SysInfo");
@@ -148,18 +148,18 @@ KW(k123,"CW"); KW(k124,"CH");                                          // 画面
 KW(k177,"Change");KW(k178,"Falling");KW(k179,"Rising");                // ピン変化
 KW(k180,"LED");                                                        // LED(=13) or LEDコマンド
 // RTC関連コマンド(5)
-#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
+#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
 KW(k125,"Date"); KW(k126,"GetDate"); KW(k127,"GetTime"); KW(k128,"SetDate");
 KW(k129,"Date$");  
 #endif
 
 // キャラクタディスプレイ
-#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
+#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
 KW(k135,"Cprint");KW(k136,"Ccls");KW(k137,"Ccurs");KW(k138,"Clocate");
 KW(k139,"Ccons");KW(k140,"Cdisp");
 #endif
 // アナログ入力ピン
-#if USE_ANADEF == 1
+#if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
 KW(k143,"A0");KW(k144,"A1");KW(k145,"A2");KW(k146,"A3");KW(k147,"A4");
 KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
   #ifdef ARDUINO_AVR_MEGA2560
@@ -168,21 +168,21 @@ KW(k148,"A5");KW(k149,"A6");KW(k150,"A7");
   #endif
 #endif
 // 赤外線リモコン入力
-#if USE_IR == 1
-KW(k159,"Ir");
+#if USE_IR == 1 || USE_ALL_KEYWORD == 1
+KW(k159,"IR");
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT != 0
+#if USE_MISAKIFONT != 0 || USE_ALL_KEYWORD == 1
 KW(k160,"GetFont");
 #endif
 // NeoPixelの利用
-#if USE_NEOPIXEL == 1
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
 KW(k161,"Ninit"); KW(k162,"Nbright"); KW(k163,"Ncls"); KW(k164,"Nset");
 KW(k165,"Npset"); KW(k166,"Nmsg"); KW(k167,"Nupdate");KW(k168,"Nshift");
 KW(k169,"RGB");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
 #endif
 // タイマー・外部割込みイベントの利用
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
 KW(k175,"Timer"); KW(k176,"Ext"); KW(k181,"Sleep");
 #endif
 
@@ -210,7 +210,7 @@ const char*  const kwtbl[] PROGMEM = {
   k134,k141,                                         // "FORMAT","DRIVE"
 
   k034,                                               // "CLS"  
-#if USE_CMD_VFD == 1
+#if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
   k037,k038,k039,k040,k041,k106,                     // "VMSG","VCLS","VSCROLL","VBRIGHT","VDISPLAY","VPUT"
 #endif
   k047,                                              // "WAIT"
@@ -220,7 +220,7 @@ const char*  const kwtbl[] PROGMEM = {
   k078,k079,k080,                                    // "GPIO","OUT","POUT"
   k086,k087,                                         // "IN","ANA"
   k091,k092,                                         // "TONE","NOTONE"
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
   k093, k107,                                        // "PLAY","TEMPO"
 #endif
   k094,                                              // "SYSINFO"
@@ -237,31 +237,31 @@ const char*  const kwtbl[] PROGMEM = {
   k123,k124,k177,k178,k179,                          // "CW","CH","Change","Falling","Rising"
   k180,                                              // "LED",
 
-#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
+#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   k125,k126,k127,k128, k129,                         // "DATE","GETDATE","GETTIME","SETDATE","DATE$"
 #endif
-#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
+#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   k135,k136,k137,k138,k139,k140,                     // "CPRINT","CCLS","CCURS","CLOCATE","CCONS","CDISP";  
 #endif
-#if USE_ANADEF == 1
+#if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
   k143,k144,k145,k146,k147,k148,k149,k150,           // "A0","A1","A2","A3","A4","A5","A6","A7",
   #ifdef ARDUINO_AVR_MEGA2560
     k151,k152,k153,k154,k155,k156,k157,k158,         // "A8","A9","A10","A11","A12","A13","A14","A15",
   #endif
 #endif
-#if USE_IR == 1
+#if USE_IR == 1 || USE_ALL_KEYWORD == 1
   k159,                                              // "IR"
 #endif
 // 美咲フォントの利用
-#if USE_MISAKIFONT != 0
+#if USE_MISAKIFONT != 0 || USE_ALL_KEYWORD == 1
   k160,
 #endif
 // NeoPixelの利用
-#if USE_NEOPIXEL == 1
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
   k161,k162,k163,k164,k165,k166,k167,k168,k169,k170,k171,k173,
 #endif
 // イベントの利用
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   k175,k176,k181,
   
 #endif
@@ -280,10 +280,10 @@ const PROGMEM unsigned char i_nsa[] = {
   I_GTE, I_SHARP, I_GT, I_EQ, I_LTE, I_LT, I_LNOT, I_BITREV, I_DIVR,
   I_ARRAY, I_RND, I_ABS, I_SIZE,I_CLS, I_QUEST,
   I_CHR, I_HEX, I_BIN,I_STRREF,
-#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
+#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   I_DATESTR,
 #endif
-#if USE_CMD_VFD == 1
+#if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
   I_VCLS,
 #endif
   I_INKEY,
@@ -296,19 +296,19 @@ const PROGMEM unsigned char i_nsa[] = {
   I_MAP, I_GRADE, I_SHIFTIN, I_PULSEIN, I_DMP,
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
   I_LSB, I_MSB,I_CW, I_CH,  
-#if USE_ANADEF == 1
+#if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
   #ifdef ARDUINO_AVR_MEGA2560
     I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
   #endif  
 #endif
-#if USE_IR == 1
+#if USE_IR == 1 || USE_ALL_KEYWORD == 1
   I_IR,
 #endif
-#if USE_MISAKIFONT != 0
+#if USE_MISAKIFONT != 0 || USE_ALL_KEYWORD == 1
 I_GETFONT,
 #endif
-#if USE_NEOPIXEL == 1
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
  I_RGB, I_NPOINT,
 #endif
 };
@@ -327,25 +327,25 @@ const PROGMEM unsigned char i_sf[]  = {
   I_GOSUB,I_GOTO,I_INPUT,I_LET,I_LIST,I_ELSE,I_RENUM,
   I_LOAD,I_LOCATE,I_NEW,I_PRINT,
   I_RETURN,I_RUN,I_SAVE,I_WAIT,
-#if USE_CMD_VFD == 1
+#if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
   I_VMSG, I_VPUT,
 #endif
   I_GPIO, I_DOUT,I_RENUM,
   I_TONE, I_NOTONE,I_SYSINFO,I_POKE,
-#if USE_CMD_PLAY == 1  
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
   I_PLAY, I_TEMPO,
 #endif
-#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1
+#if USE_RTC_DS3231 == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   I_DATE, I_GETDATE, I_GETTIME, I_SETDATE,   // RTC関連コマンド(4)  
 #endif 
   I_FORMAT,I_DRIVE,
-#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1
+#if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
   I_CPRINT, I_CCLS, I_CCURS, I_CLOCATE, I_CCONS, I_CDISP,  
 #endif
-#if USE_NEOPIXEL == 1
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
   I_NINIT, I_NBRIGHT, I_NCLS, I_NSET, I_NPSET, I_NMSG, I_NUPDATE, I_NSHIFT, I_NLINE,I_NSCROLL,
 #endif
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   I_TIMER, I_PIN,
 #endif
 };
@@ -356,7 +356,7 @@ const PROGMEM uint8_t i_sb_if_value[] = {
   I_OFF, I_ON, I_MEM, I_MVAR, I_MARRAY,I_MPRG, I_MEM2, 
   I_KUP, I_KDOWN, I_KRIGHT, I_KLEFT, I_KSPACE, I_KENTER,  // キーボードコード
   I_LSB, I_MSB,I_CW, I_CH,  
-#if USE_ANADEF == 1
+#if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
   I_A0,I_A1,I_A2,I_A3,I_A4,I_A5,I_A6,I_A7,
   #ifdef ARDUINO_AVR_MEGA2560
     I_A8,I_A9,I_A10,I_A11,I_A12,I_A13,I_A14,I_A15,
@@ -2431,7 +2431,9 @@ uint8_t* iexe() {
     case I_ON:        iOnPinTimer();    break;  // ON TIMER| ON PIN
     case I_TIMER:     iTimer();         break;  // TIMER
     case I_PIN:       iPin();           break;  // PIN
+#if USE_SLEEP == 1
     case I_SLEEP:     isleep();         break;  // SLEEP
+#endif
 #endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO           
 

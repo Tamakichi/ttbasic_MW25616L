@@ -258,7 +258,7 @@ int16_t ishiftIn() {
 
   if (checkOpen() ||
       getParam(dataPin , 0,TT_MAX_PINNUM, true) ||  // データピン
-      getParam(mode    , 0, true) ||                // ピンモード
+      getParam(mode, true) ||                       // ピンモード
       getParam(clockPin,0,TT_MAX_PINNUM, true) ||   // クロックピン
       getParam(bitOrder,0,1, false)                 // オーダー
    ) return 0;
@@ -272,7 +272,7 @@ int16_t ishiftIn() {
   // ピン利用の有効性チェック
   if ( !IsIO_PIN(dataPin) ||  !IsIO_PIN(clockPin) ) {
     err = ERR_GPIO;
-    return;
+    return 0;
   }
   
   // ピンモードのチェック
@@ -305,7 +305,7 @@ int16_t ipulseIn() {
   // コマンドライン引数の取得
   if (checkOpen() ||                              // '('のチェック
       getParam(dataPin, 0,TT_MAX_PINNUM, true) || // ピン
-      getParam(mode, LOW, HIGH, true) ||          // ピンモード
+      getParam(mode, true) ||                     // ピンモード
       getParam(sigMode, LOW, HIGH, true) ||       // 信号検出モード
       getParam(tmout,0,32767, false)              // タイムアウト時間(ミリ秒)
    ) return 0;           
