@@ -5,7 +5,8 @@
 // 修正 2019/08/07 外部割込みイベント機能の追加(ON PIN)
 // 修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
 // 修正 2019/08/19 SLEEP機能の仕様変更(ウオッチドックタイマ利用)
-//
+// 修正 2019/08/30 ON PIN.. の仕様変更、ピンモードの引数の追加
+// 修正 2019/08/31 MEGA2560でのSLEEP BOD部コンパイルエラー不具合対応
 
 #include <avr/sleep.h> 
 #include "Arduino.h"
@@ -90,9 +91,9 @@ void initTimerEvent() {
 }
 
 // ON TIMER 周期 GOTO|GOSUB 行番号|ラベル
-// ON PIN ピン番号,モード GOTO|GOSUB 行番号|ラベル
+// ON PIN ピン番号,ピンモード,検出モード GOTO|GOSUB 行番号|ラベル
 void iOnPinTimer() {
-  int16_t tm, pin, mode, fnc = 0;
+  int16_t tm, pin,pmode, smode, fnc = 0;
 
   if (*cip == I_TIMER) {   // 'TIMER'のチェック
       fnc = I_TIMER;
@@ -104,10 +105,13 @@ void iOnPinTimer() {
   } else if (*cip == I_PIN) { // 'PIN'のチェック
       fnc = I_PIN;        
       cip++;
-      if ( getParam(pin,  2,3, true) )  return;     // ピン番号の取得
-      if ( getParam(mode, 0,3, false) ) return;     // モードの取得
-      eevt[pin-2].mode = mode;    // モード
-      eevt[pin-2].flgEvent = 0;   // 発生フラグ（キュー） なし
+      if ( getParam(pin,  2,3, true) )  return;      // ピン番号の取得
+      if ( getParam(pmode, true) )      return;      // ピンモードの取得
+      if ( getParam(smode, 0,3, false) ) return;     // 検出モードの取得
+      if (pmode != INPUT && pmode != INPUT_PULLUP) return;       
+      eevt[pin-2].mode = smode;    // 検出モード
+      eevt[pin-2].flgEvent = 0;    // 発生フラグ（キュー） なし
+      pinMode(pin, pmode);
   } else {
       err = ERR_SYNTAX;
       return;
@@ -308,11 +312,13 @@ void isleep() {
   //set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // パワーダウンモード指定
   sleep_enable();
   //sleep_mode();
- 
-  // BODを停止（消費電流 27→6.5μA）
 
+#ifndef ARDUINO_AVR_MEGA2560  // MEGA2560はBOD停止未サポート
+  // BODを停止（消費電流 27→6.5μA）
   MCUCR |= (1 << BODSE) | (1 << BODS);   // MCUCRのBODSとBODSEに1をセット
   MCUCR = (MCUCR & ~(1 << BODSE)) | (1 << BODS);  // すぐに（4クロック以内）BODSSEを0, BODSを1に設定
+#endif
+
   asm("sleep");                         // 3クロック以内にスリープ sleep_mode();では間に合わなかった
   sleep_disable();                      // WDTがタイムアップでここから動作再開
   if (tm != 0) {
