@@ -49,6 +49,7 @@
 //  修正 2019/08/19 PINキーワードをEXTに変更(ピン設定と混乱するため)
 //  修正 2019/08/21 OUT、INの事前GPIO設定を不要に変更
 //  修正 2019/08/21 キーボード変更(POUT=>PWM、INPUT_FL=>FLOAT、INPUT_PU=>PULLUP
+//  修正 2019/08/21 ERASE、FILES、FORMAT、DRIVEコマンドを一般コマンドに変更
 //
 
 #include <Arduino.h>
@@ -205,11 +206,11 @@ const char*  const kwtbl[] PROGMEM = {
   k027,k028,k029,k030,                               // "@","RND","ABS","FREE"
 
   // システムコマンド 
-  k032,k031,k090,k142,k033,                          // "RUN","LIST","RENUM","DELETE","NEW",
-  k044,k043,k046,k045,                               // "LOAD","SAVE","ERASE","FILES",
-  k134,k141,                                         // "FORMAT","DRIVE"
+  k032,k031,k090,k142,k033,k044,k043,                // "RUN","LIST","RENUM","DELETE","NEW","LOAD","SAVE",
+  // 下記はシステムコマンドが除外(2019/09/04)
+    k046,k045,k134,k141,                               // "ERASE","FILES","FORMAT","DRIVE"
+    k034,                                              // "CLS"  
 
-  k034,                                               // "CLS"  
 #if USE_CMD_VFD == 1 || USE_ALL_KEYWORD == 1
   k037,k038,k039,k040,k041,k106,                     // "VMSG","VCLS","VSCROLL","VBRIGHT","VDISPLAY","VPUT"
 #endif
@@ -2352,7 +2353,7 @@ uint8_t* iexe() {
   while (*cip != I_EOL) { //行末まで繰り返す
 
   //強制的な中断の判定
-  if (isBreak())
+  if (isBreak()) 
     break;
 
     //中間コードを実行
@@ -2437,6 +2438,11 @@ uint8_t* iexe() {
 #endif
     case I_SYSINFO:   iinfo();          break;  // SYSINFO           
 
+    case I_ERASE: ierase();   break;  // ERASE
+    case I_FILES: ifiles();   break;  // FILES
+    case I_FORMAT:iformat();  break;  // FORMAT
+    case I_DRIVE: idrive();   break;  // DRIVE
+
     case I_COLON:     break; // 中間コードが「:」の場合   
       
     default:                 // 以上のいずれにも該当しない場合
@@ -2490,7 +2496,8 @@ void irun() {
 #endif
 }
 
-//Command precessor
+// Command precessor
+// コマンドラインからのコマンド実行
 uint8_t icom() {
   uint8_t rc = 1;
   cip = ibuf;       // 中間コードポインタを中間コードバッファの先頭に設定
@@ -2503,11 +2510,13 @@ uint8_t icom() {
   case I_NEW:   inew();     break;  // NEW  
   case I_LOAD:  iLoadSave(MODE_LOAD); break;  // LOAD
   case I_SAVE:  iLoadSave(MODE_SAVE); break;  // SAVE
+/*
   case I_ERASE: ierase();   break;  // ERASE
   case I_FILES: ifiles();   break;  // FILES
   case I_FORMAT:iformat();  break;  // FORMAT
   case I_DRIVE: idrive();   break;  // DRIVE
   case I_CLS:   icls();
+*/  
   case I_REM:
   case I_SQUOT:
   case I_OK:    rc = 0;     break; // I_OKの場合
