@@ -2261,7 +2261,7 @@ int16_t ivalue() {
     break;
       
   case I_DIN: value = iIN();  break;  // DIN(ピン番号)
-  case I_ANA: value = iana();    break;  // ANA(ピン番号)
+  case I_ANA: value = iana(); break;  // ANA(ピン番号)
 #if USE_MISAKIFONT != 0
   case I_GETFONT:value = igetfont(); break; // 美咲フォントの取得
 #endif

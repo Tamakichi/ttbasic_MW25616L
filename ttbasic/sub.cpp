@@ -3,6 +3,7 @@
 // BASIC 追加基本コマンド・関数 2019/06/08 by たま吉さん 
 // 修正 2019/06/11 GETFONTコマンドの追加（美咲フォント対応）
 // 修正 2019/07/01 ihex()とibin()を統合し、メモリ制約
+// 修正 2019/09/07 imap()の計算をmap()を使うように修正
 //
 
 #include "Arduino.h"
@@ -58,16 +59,18 @@ void ichr(uint8_t devno) {
 
 // MAP(V,L1,H1,L2,H2)関数の処理
 int16_t imap() {
-  int32_t value,l1,h1,l2,h2,rc;
+  int16_t value,l1,h1,l2,h2,rc;
+
   if (checkOpen() || getParam(value,true)||getParam(l1,true)||
-       getParam(h1,true)||getParam(l2,true)||getParam(h2,false) ) 
+       getParam(h1,true)||getParam(l2,true)||getParam(h2,false) ) {
     return 0;
+  }
   if (checkClose()) return 0;
   if (l1 >= h1 || l2 >= h2 || value < l1 || value > h1) {
     err = ERR_VALUE;
     return 0;
   }
-  rc = (value-l1)*(h2-l2)/(h1-l1)+l2;
+  rc = map(value,l1,h1,l2,h2);
   return rc;  
 }
 
