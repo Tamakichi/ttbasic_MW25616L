@@ -50,6 +50,8 @@
 //  修正 2019/08/21 OUT、INの事前GPIO設定を不要に変更
 //  修正 2019/08/21 キーボード変更(POUT=>PWM、INPUT_FL=>FLOAT、INPUT_PU=>PULLUP
 //  修正 2019/08/21 ERASE、FILES、FORMAT、DRIVEコマンドを一般コマンドに変更
+//  修正 2019/09/11 NEW、LIST、RENUM、DELETE、LOAD、SAVEを一般コマンドに変更
+//  修正 2019/09/11 LOADでプログラム中で別プログラムをロード実行可能に修正
 //
 
 #include <Arduino.h>
@@ -1799,6 +1801,7 @@ void ilist(uint8_t devno=0) {
   int16_t lineno = 0;          // 表示開始行番号
   int16_t endlineno = 32767;   // 表示終了行番号
   int16_t prnlineno;           // 出力対象行番号
+  uint8_t *bak_clp;            // バックアップ
   
   //表示開始行番号の設定
   if (*cip != I_EOL && *cip != I_COLON) {
@@ -1809,7 +1812,8 @@ void ilist(uint8_t devno=0) {
       if (getParam(endlineno,lineno,32767,false)) return;      // 表示終了行番号
      }
    }
- 
+
+  bak_clp = clp;
   clp = getlp(lineno);         // 行ポインタを表示開始行番号へ進める
 
   //リストを表示する
@@ -1828,13 +1832,14 @@ void ilist(uint8_t devno=0) {
     newline(devno);            // 改行
     clp += *clp;               // 行ポインタを次の行へ進める
   }
+  clp = bak_clp;
 }
 
 // RENUME [開始番号[,増分]]
 // ※引数には、符号無し10進数定数のみ指定可能
 void irenum() {
-  uint16_t startLineNo = 10;  // 開始行番号
-  uint16_t increase = 10;     // 増分
+  int16_t startLineNo = 10;   // 開始行番号
+  int16_t increase = 10;      // 増分
   uint8_t* ptr;               // プログラム領域参照ポインタ
   uint8_t  len;               // 行長さ
   uint8_t  i;                 // 中間コード参照位置
@@ -1842,26 +1847,16 @@ void irenum() {
   uint16_t num;               // 現在の行番号
   uint16_t index;             // 行インデックス
   uint16_t cnt;               // プログラム行数
+  uint8_t *bak_clp;           // バックアップ
   
   // 開始行番号、増分引数チェック
   if (*cip != I_EOL && *cip != I_COLON) {
-    // もしRENUMT命令に引数があったら
-    if (*cip == I_NUM) {
-      startLineNo = getlineno(cip);    // 引数を読み取って開始行番号とする
-      cip+=3;
-      if (*cip == I_COMMA) {
-          cip++;                        // カンマをスキップ
-          if (*cip == I_NUM) {          // 増分指定があったら
-             increase = getlineno(cip); // 引数を読み取って増分とする
-          } else {
-             err = ERR_SYNTAX;          // カンマありで引数なしの場合はエラーとする
-             return;
-         }
-      }
-    } else {
-      err = ERR_SYNTAX;                 // カンマありで引数なしの場合はエラーとする
-      return;    
-    }
+    // 引数あり
+    if (getParam(startLineNo,1,32767,false)) return;     // 開始行番号
+    if (*cip == I_COMMA) {
+      cip++;                                             // カンマをスキップ
+      if (getParam(increase,1,32767,false)) return;      // 増分
+     }
   }
 
   // 引数の有効性チェック
@@ -1872,6 +1867,7 @@ void irenum() {
     return;   
   }
 
+  bak_clp = clp;
   // ブログラム中のGOTOの飛び先行番号を付け直す
   for (clp = listbuf; *clp ; clp += *clp) {
      ptr = clp;
@@ -1928,6 +1924,7 @@ void irenum() {
      *(clp+2)  = newnum>>8;
      index++;
   }
+  clp = bak_clp;
 }
 
 // 指定行の削除
@@ -2436,7 +2433,14 @@ uint8_t* iexe() {
     case I_SLEEP:     isleep();         break;  // SLEEP
 #endif
 #endif
-    case I_SYSINFO:   iinfo();          break;  // SYSINFO           
+    case I_SYSINFO:   iinfo();          break;  // SYSINFO     
+    case I_RENUM: irenum();             break;  // RENUMの場合
+    case I_DELETE:idelete();            break;  // DELETE
+
+    case I_NEW:   inew();               break;  // NEW  
+    case I_LIST:  ilist();              break;  // LIST
+    case I_LOAD:  iLoadSave(MODE_LOAD); break;  // LOAD
+    case I_SAVE:  iLoadSave(MODE_SAVE); break;  // SAVE
 
     case I_ERASE: ierase();   break;  // ERASE
     case I_FILES: ifiles();   break;  // FILES
@@ -2469,19 +2473,22 @@ uint8_t* iexe() {
   return clp + *clp; //次に実行するべき行のポインタを持ち帰る
 }
 
-// RUNコマンド
-void irun() {
-  uint8_t* lp; // 行ポインタの一時的な記憶場所
-
+// プログラム初期化
+void initProgram() {
   // 変数と配列の初期化
   memset(var,0,52);
   memset(arr,0,SIZE_ARRY*2);
-
   gstki = 0;         // GOSUBスタックインデクスを0に初期化
   lstki = 0;         // FORスタックインデクスを0に初期化
   clp = listbuf;     // 行ポインタをプログラム保存領域の先頭に設定
+  cip = clp+3;       // 中間コードポインタを先頭に設定
+}
 
- c_show_curs(0);    // カーソル消去
+// RUNコマンド
+void irun() {
+  uint8_t* lp; // 行ポインタの一時的な記憶場所
+  initProgram();
+  c_show_curs(0);    // カーソル消去
   while (*clp) {     // 行ポインタが末尾を指すまで繰り返す
     cip = clp + 3;   // 中間コードポインタを行番号の後ろに設定
     lp = iexe();     // 中間コードを実行して次の行の位置を得る
@@ -2504,13 +2511,14 @@ uint8_t icom() {
   //c_show_curs(0);  
   switch (*cip++) { // 中間コードポインタが指し示す中間コードによって分岐
   case I_RUN:   irun();     break;  // RUN命令
+
+/* システムコマンドの一部を一般コマンドに変更
   case I_LIST:  ilist();    break;  // LIST
-  case I_RENUM: irenum();   break;  // RENUMの場合  
+  case I_RENUM: irenum();   break;  // RENUMの場合
   case I_DELETE:idelete();  break;  // DELETE
   case I_NEW:   inew();     break;  // NEW  
   case I_LOAD:  iLoadSave(MODE_LOAD); break;  // LOAD
   case I_SAVE:  iLoadSave(MODE_SAVE); break;  // SAVE
-/*
   case I_ERASE: ierase();   break;  // ERASE
   case I_FILES: ifiles();   break;  // FILES
   case I_FORMAT:iformat();  break;  // FORMAT

@@ -3,6 +3,7 @@
 // ファイルシステム機能に関する機能（内部EEPROM、外部接続I2C EEPROM（オプション機能））
 // 2019/06/08 by たま吉さん 
 // 修正 2019/07/27 LOADコマンドのエラーコード不具合対応
+// 修正 2019/09/11 LOADでプログラム中で別プログラムをロード実行可能
 
 #include "Arduino.h"
 #include "basic.h"
@@ -90,6 +91,10 @@ void iLoadSave(uint8_t mode,uint8_t flgskip) {
     else
       eeprom_read_block((void *)listbuf, (void *)topAddr, SIZE_LIST);    // プログラムのロード      
   }
+
+  // LOADのプログラム中での実行では、ロードしたプログラムを実行する
+  if (!mode && !err && (cip >= listbuf) && (cip <=listbuf+PRGAREASIZE) )
+    initProgram();
 }
 
 void iefiles();

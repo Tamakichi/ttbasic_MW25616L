@@ -180,6 +180,9 @@ extern uint8_t* cip;                 // インタプリタ中間コード参照�
 extern uint8_t* clp;                 // カレント行先頭ポインタ
 extern uint8_t prevPressKey;         // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
 
+extern uint8_t gstki;               // GOSUB スタック インデックス
+extern uint8_t lstki;               // FOR 市タック インデックスtoktoi()
+
 //*** 関数のプロトタイプ宣言 **********************
 
 // 出力制御他版との互換用
@@ -224,6 +227,8 @@ void inew(void);
 void putHexnum(int16_t value, uint8_t d, uint8_t devno);
 uint8_t* getJumplp();
 void iGotoGosub(uint8_t mode, uint16_t evtlp = 0);
+void irun();
+void initProgram();
 
 // コンソール画面関連
 void init_console();
