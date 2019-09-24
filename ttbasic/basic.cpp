@@ -186,7 +186,7 @@ KW(k169,"RGB");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
 #endif
 // タイマー・外部割込みイベントの利用
 #if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
-KW(k175,"Timer"); KW(k176,"Ext"); KW(k181,"Sleep");
+KW(k175,"Timer"); KW(k176,"Pin"); KW(k181,"Sleep");
 #endif
 
 KW(k071,"OK");

@@ -5,6 +5,7 @@
 // 修正 2019/08/08 LEDコマンド、定数の追加
 // 修正 2019/08/21 OUT、INの事前GPIO設定を不要に変更
 // 修正 2019/08/22 SHIFTIN、PULSEINの事前GPIO設定を不要に変更,ピンモード引数の追加
+// 修正 2019/09/24 SHIFTOUTの事前GPIO設定を不要に変更
 //
 
 #include "Arduino.h"
@@ -100,7 +101,7 @@ void iled() {
 }
 
 // GPIO ピンデジタル入力
-// IN(ピン番号[,INPUT|PULLUP)
+// IN(ピン番号[,Float|PullUp)
 int16_t iIN() {
   int16_t pinNo, mode = INPUT, value;
 
@@ -171,6 +172,8 @@ void ishiftOut() {
     err = ERR_GPIO;
     return;
   }
+  pinMode(dataPin,OUTPUT);
+  pinMode(clockPin,OUTPUT);
   shiftOut(dataPin, clockPin, bitOrder, data);
 #endif
 }
