@@ -158,8 +158,8 @@ KW(k129,"Date$");
 
 // キャラクタディスプレイ
 #if USE_SO1602AWWB == 1 && USE_CMD_I2C == 1 || USE_ALL_KEYWORD == 1
-KW(k135,"Cprint");KW(k136,"Ccls");KW(k137,"Ccurs");KW(k138,"Clocate");
-KW(k139,"Ccons");KW(k140,"Cdisp");
+KW(k135,"CPrint");KW(k136,"CCls");KW(k137,"CCurs");KW(k138,"CLocate");
+KW(k139,"CCons");KW(k140,"CDisp");
 #endif
 // アナログ入力ピン
 #if USE_ANADEF == 1 || USE_ALL_KEYWORD == 1
@@ -180,9 +180,9 @@ KW(k160,"GetFont");
 #endif
 // NeoPixelの利用
 #if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
-KW(k161,"Ninit"); KW(k162,"Nbright"); KW(k163,"Ncls"); KW(k164,"Nset");
-KW(k165,"Npset"); KW(k166,"Nmsg"); KW(k167,"Nupdate");KW(k168,"Nshift");
-KW(k169,"RGB");KW(k170,"Nline"); KW(k171,"Nscroll"); KW(k173,"Npoint");
+KW(k161,"NInit"); KW(k162,"NBright"); KW(k163,"NCls"); KW(k164,"NSet");
+KW(k165,"NPset"); KW(k166,"NMsg"); KW(k167,"NUpdate");KW(k168,"NShift");
+KW(k169,"RGB");KW(k170,"NLine"); KW(k171,"NScroll"); KW(k173,"NPoint");
 #endif
 // タイマー・外部割込みイベントの利用
 #if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
