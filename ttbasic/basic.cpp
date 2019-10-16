@@ -52,6 +52,7 @@
 //  修正 2019/08/21 ERASE、FILES、FORMAT、DRIVEコマンドを一般コマンドに変更
 //  修正 2019/09/11 NEW、LIST、RENUM、DELETE、LOAD、SAVEを一般コマンドに変更
 //  修正 2019/09/11 LOADでプログラム中で別プログラムをロード実行可能に修正
+//  修正 2019/10/08 NeoPixelのエラーメッセージの追加
 //
 
 #include <Arduino.h>
@@ -426,27 +427,34 @@ KW(e21,"Internal error");
 KW(e22,"Break");
 KW(e23,"Illegal value");
 KW(e24,"Cannot use GPIO function");
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
 KW(e25,"Illegal MML");
 #endif
 KW(e26,"I2C Device Error");
 KW(e27,"Bad filename");
 KW(e28,"Device full");
-#if USE_EVENT == 1
+#if USE_EVENT == 1  || USE_ALL_KEYWORD == 1
 KW(e29,"No event");
 #endif
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
+KW(e30,"Need NInit");
+#endif
+
 
 // エラーメッセージテーブル
 const char*  const errmsg[] PROGMEM = {
   e00,e01,e02,e03,e04,e05,e06,e07,e08,e09,
   e10,e11,e12,e13,e14,e15,e16,e17,e18,e19,  
   e20,e21,e22,e23,e24,
-#if USE_CMD_PLAY == 1
+#if USE_CMD_PLAY == 1 || USE_ALL_KEYWORD == 1
   e25,
 #endif
   e26,e27,e28,
-#if USE_EVENT == 1
+#if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   e29,
+#endif
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
+  e30,
 #endif
 };
 

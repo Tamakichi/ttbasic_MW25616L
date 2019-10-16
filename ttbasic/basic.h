@@ -8,6 +8,7 @@
 // 修正 2019/08/07 外部割込みイベント機能の追加(ON PIN)
 // 修正 2019/08/08 LEDコマンド、定数の追加
 // 修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
+// 修正 2019/10/08 NeoPixelのエラーメッセージの追加
 //
 
 #ifndef __basic_h__
@@ -160,6 +161,9 @@ enum {
   ERR_NOFSPACE,
 #if USE_EVENT == 1 || USE_ALL_KEYWORD == 1
   ERR_NOEDEF,
+#endif
+#if USE_NEOPIXEL == 1 || USE_ALL_KEYWORD == 1
+  ERR_NINIT,
 #endif
 };
 

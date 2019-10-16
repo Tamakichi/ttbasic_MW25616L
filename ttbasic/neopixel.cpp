@@ -1,8 +1,8 @@
 //
 // Arduino Uno互換機+「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」対応
 // NeoPixel関連
-// 2019/06/26 by たま吉さん 
-//
+// 作成 2019/06/26 by たま吉さん 
+// 修正 2019/08/31 未初期化エラーチェックの追加、ピクセル番号指定チェックの追加
 
 #include "Arduino.h"
 #include "basic.h"
@@ -42,9 +42,19 @@ void ininit() {
   np.cls();
 }
 
+// NeoPixel初期化チェック
+uint8_t chkNinit() {
+  if (!np.getPixelNum()) {
+    // 未初期化
+    err = ERR_NINIT;
+  }
+  return !np.getPixelNum();
+}
+
 // NeoPixelバッファ反映
 // NUPDATE
 void inupdate() {
+  if (chkNinit()) return;   
   np.update();
 }
 
@@ -53,6 +63,9 @@ void inupdate() {
 void inbright() {
   int16_t level;
   int16_t flg = 1;  
+  
+  if (chkNinit()) return;   
+  
   if (getParam(level, 0, 5, false))  return;
   if(*cip == I_COMMA) {
     cip++;
@@ -67,7 +80,9 @@ void inbright() {
 // NCLS [更新flg]
 void incls() {
   int16_t flg = 1;
-
+  
+  if (chkNinit()) return;   
+  
   // 更新flg
   if (*cip != I_EOL && *cip != I_COLON)
     if (getParam(flg,0,1,false)) return;
@@ -99,6 +114,8 @@ int16_t inpoint() {
   int16_t x,y;
   uint16_t rc = -1;
 
+  if (chkNinit()) return;   
+  
   if (checkOpen() ||
       getParam(x,true) || getParam(y,false) ||
       checkClose()
@@ -115,8 +132,9 @@ void inset() {
   int16_t no;
   int16_t color;
   int16_t flg = 1;
-
-  if (getParam(no, 0, 63, true) ||
+  
+  if (chkNinit()) return;   
+  if (getParam(no, 0, np.getPixelNum()-1, true) ||
       getParam(color,0,255,false)
   ) return;
   if(*cip == I_COMMA) {
@@ -133,6 +151,7 @@ void inpset() {
   int16_t color;
   int16_t flg = 1;
 
+  if (chkNinit()) return;   
   if (getParam(x, 0, 7, true) ||
       getParam(y, 0, 7, true) ||
       getParam(color,0,255,false)
@@ -150,6 +169,7 @@ void inshift() {
   int16_t dir;
   int16_t flg = 1;
 
+  if (chkNinit()) return;   
   if (getParam(dir, 0, 1, false)) return;
   if(*cip == I_COMMA) {
     cip++;
@@ -177,7 +197,8 @@ void nmsg(const char* msg, uint16_t color, uint16_t tm) {
 void inmsg() {
   int16_t tm;
   int16_t color;
-  
+
+  if (chkNinit()) return;     
   if ( getParam(tm, 0, 5000, true) ||
       getParam(color, 0,255, true)
   ) return;
@@ -214,7 +235,8 @@ void drawline(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color){
 void inLine() {
   int16_t x1, y1, x2, y2, color, mode = 0;
   int16_t flg = 1;
-  
+
+  if (chkNinit()) return;   
   if ( getParam(x1, 0, 7, true) ||
        getParam(y1, 0, 7, true) ||
        getParam(x2, 0, 7, true) ||
@@ -258,6 +280,7 @@ void inscroll() {
   int16_t dir;
   int16_t flg = 1;
 
+  if (chkNinit()) return;   
   if (getParam(dir, 0, 3, false)) return;
   if(*cip == I_COMMA) {
     cip++;

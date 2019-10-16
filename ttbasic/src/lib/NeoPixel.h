@@ -7,7 +7,7 @@
 class NeoPixel {
  private:
   uint8_t* buf;          // NeoPixel ピクセルバッファ
-  uint8_t  n;            // ピクセル数
+  uint8_t  n = 0;        // ピクセル数
   uint8_t  brightness;   // 輝度
 
  public:
@@ -15,6 +15,7 @@ class NeoPixel {
   uint8_t *getBuffer() {return buf;};
   void init();
   void update();
+  uint8_t getPixelNum() { return n;};
   void cls(uint8_t flgUpdate=false);
   void setRGB(uint8_t no, uint16_t color, uint8_t flgUpdate=false) ;
   void setPixel(uint8_t x, uint8_t y,uint8_t color, uint8_t flgUpdatee=false);
