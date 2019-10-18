@@ -56,7 +56,7 @@
 
 - タイマーイベント（ON TIMER ミリ秒 GOSUB|GOTO,TIMER ON|OFFコマンド）
 
-- 外部割込みイベント（ON EXT ピン番号,LOW|RISING|FALLING|CHANGE GOSUB|GOTO、EXT ピン番号,ON|OFF）
+- 外部割込みイベント（ON EXT ピン番号,LOW|RISING|FALLING|CHANGE GOSUB|GOTO、PIN ピン番号,ON|OFF）
 
 - SLEEP機能（SLEEPコマンド)
 
