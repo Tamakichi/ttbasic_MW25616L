@@ -199,8 +199,8 @@ void inmsg() {
   int16_t color;
 
   if (chkNinit()) return;     
-  if ( getParam(tm, 0, 5000, true) ||
-      getParam(color, 0,255, true)
+  if ( getParam(color, 0,255, true) ||
+       getParam(tm, 0, 5000, true)       
   ) return;
   
   // メッセージ部をバッファに格納する
@@ -281,10 +281,19 @@ void inscroll() {
   int16_t flg = 1;
 
   if (chkNinit()) return;   
-  if (getParam(dir, 0, 3, false)) return;
+//  if (getParam(dir, 0, 3, false)) return;
+  if (getParam(dir,false)) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
+  }
+  if (dir == 28) dir = 2; // Up
+  if (dir == 29) dir = 3; // down
+  if (dir == 30) dir = 1; // Right
+  if (dir == 31) dir = 0; // left  
+  if (dir <0 || dir >3) {
+      err = ERR_VALUE;
+      return;
   }
   np.scroll(dir, flg);
 }

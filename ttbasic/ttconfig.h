@@ -50,7 +50,7 @@
 #define USE_ALL_KEYWORD  1   // 未使用キーワードも有効にする(1:有効 2:無効 デフォルト:1)
 
 #ifndef ARDUINO_AVR_MEGA2560
-// ** 機能利用オプション設定 for Arduino Nno *********************************
+// ** 機能利用オプション設定 for Arduino Uno *********************************
 #define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_PULSEIN    1  // PULSEIN関数の利用(0:利用しない 1:利用する デフォルト:1)
