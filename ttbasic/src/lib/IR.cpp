@@ -3,6 +3,7 @@
 // 参考にしたサイト
 //   Arduinoで遊ぶページ 赤外線リモコンコード解析(NECフォーマット)
 //   http://garretlab.web.fc2.com/arduino/make/infrared_sensor_nec_format/
+// 最終更新日 2019/05/28  by たま吉さん
 //
 
 #include <Arduino.h>
@@ -39,7 +40,7 @@ uint8_t readBit(uint8_t pinNo, uint8_t d,uint16_t tm) {
 //  を返す.
 //
 uint32_t Read_IR(uint8_t pinNo,uint16_t tm) {
-  uint8_t  repeat = 0;  // リピートコード検出フラグ
+  //uint8_t  repeat = 0;  // リピートコード検出フラグ
   uint32_t  dt    = 0;  // 赤外線リモコン読み取りデータ
   uint32_t t ;          // 信号長計測用
 
@@ -59,10 +60,11 @@ uint32_t Read_IR(uint8_t pinNo,uint16_t tm) {
   t = micros();                 // OFF検出時刻取得
   while(digitalRead(pinNo));    // OFF間隔待ち  
   t = micros() -t;              // OFF->ON時間取得        
-  if (t < RC_RDL_TS) {
+//  if (t < RC_RDL_TS) {
+  if (t >= RC_RDL_TS) {
     // 0N->OFF がリピートコードの場合、データ取得はスキップ
-    repeat = 1;
-  } else {
+//    repeat = 1;
+//  } else {
      // データ部取得
      // |~~~~~~~|____________________|
      //  0.56ms   0:0.56ms or 1:1.69ms

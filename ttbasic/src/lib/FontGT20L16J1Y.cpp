@@ -1,5 +1,6 @@
 //
 // 日本語フォントROM GT20L16J1Y 利用ドライバ
+// 最終更新日2019/05/28 by たま吉さん
 //
 
 #include "FontGT20L16J1Y.h"
@@ -107,7 +108,7 @@ uint16_t FontGT20L16J1Y::SJIS2JIS(uint16_t sjis) {
 }
 
 // フォント利用開始
-uint8_t FontGT20L16J1Y::begin() {
+void FontGT20L16J1Y::begin() {
   //SPI通信の設定
   pinMode (SS, OUTPUT);
   SPI.begin();
@@ -117,7 +118,7 @@ uint8_t FontGT20L16J1Y::begin() {
 }
 
 // フォント利用終了 
-uint8_t FontGT20L16J1Y::end() {
+void FontGT20L16J1Y::end() {
   SPI.end();
 }
 
@@ -125,7 +126,7 @@ uint8_t FontGT20L16J1Y::end() {
 //  fontdata: フォントデータ格納先アドレス
 //  sjis    : フォントコード
 boolean FontGT20L16J1Y::getFontDataBySJIS(uint8_t* fontdata, uint16_t sjis) {
-  uint8_t data;
+  //uint8_t data;
   int32_t addr=0;
   uint8_t n;
   uint16_t code;

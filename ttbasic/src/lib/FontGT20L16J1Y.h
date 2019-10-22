@@ -1,5 +1,6 @@
 //
 // 日本語フォントROM GT20L16J1Y 利用ドライバ
+// 最終更新日2019/05/28 by たま吉さん
 //
 
 #ifndef _FontGT20L16J1Y_H_
@@ -13,8 +14,8 @@ class FontGT20L16J1Y {
   public:
     FontGT20L16J1Y() {};                           // コンストラクタ
     ~FontGT20L16J1Y() {};                          // ディストラクタ
-    uint8_t begin();                               // フォント利用開始
-    uint8_t end();                                 // フォント利用終了    
+    void begin();                                  // フォント利用開始
+    void  end();                                   // フォント利用終了    
     uint32_t calcAddr(uint16_t jiscode);           // 全角JISコードからフォント格納先頭アドレスを求める
     uint16_t HantoZen(uint16_t sjis);              // SJIS半角コードからSJIS全角コードに変換
     uint16_t SJIS2JIS(uint16_t sjis);              // SJISからJISx0208変換

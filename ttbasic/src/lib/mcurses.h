@@ -15,8 +15,8 @@
  */
 
 //
-// C³ 2018/01/30 ƒL[ƒR[ƒh‚Ì•ÏXi‘SŠp•¶šƒVƒtƒgJIS‘Î‰‚Ì‚½‚ßj
-// C³ 2018/03/01 CTRLƒL[’è‹`‚Ì’Ç‰Á
+// ä¿®æ­£ 2018/01/30 ã‚­ãƒ¼ã‚³ãƒ¼ãƒ‰ã®å¤‰æ›´ï¼ˆå…¨è§’æ–‡å­—ã‚·ãƒ•ãƒˆJISå¯¾å¿œã®ãŸã‚ï¼‰
+// ä¿®æ­£ 2018/03/01 CTRLã‚­ãƒ¼å®šç¾©ã®è¿½åŠ 
 //
 
 
@@ -95,7 +95,8 @@ extern uint_fast8_t             mcurses_curx;                                   
  */
 void                     setFunction_putchar(void (*functionPoitner)(uint8_t ch));
 void                     setFunction_getchar(char (*functionPoitner)(void));
-uint_fast8_t             initscr (void);                                     // initialize mcurses
+//uint_fast8_t             initscr (void);                                     // initialize mcurses
+void                     initscr (void);                                     // initialize mcurses
 void                     move (uint_fast8_t, uint_fast8_t);                  // move cursor to line, column (home = 0, 0)
 void                     attrset (uint_fast16_t);                            // set attribute(s)
 void                     addch (uint_fast8_t);                               // add a character

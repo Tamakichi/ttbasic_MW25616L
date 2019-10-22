@@ -15,8 +15,9 @@
  */
 
 //
-// C³ 2018/01/30 ƒL[ƒR[ƒh‚Ì•ÏXi‘SŠp•¶šƒVƒtƒgJIS‘Î‰‚Ì‚½‚ßj
-// C³ 2018/02/14 Arduino(AVR)—pSRAM—˜—pÁ”ïŒyŒ¸‘Î‰
+// ä¿®æ­£ 2018/01/30 ã‚­ãƒ¼ã‚³ãƒ¼ãƒ‰ã®å¤‰æ›´ï¼ˆå…¨è§’æ–‡å­—ã‚·ãƒ•ãƒˆJISå¯¾å¿œã®ãŸã‚ï¼‰
+// ä¿®æ­£ 2018/02/14 Arduino(AVR)ç”¨SRAMåˆ©ç”¨æ¶ˆè²»è»½æ¸›å¯¾å¿œ
+// ä¿®æ­£ 2019/06/05 æœªå®Ÿè£…é–¢æ•°ã®å‘¼ã³å‡ºã—ã‚’å‰Šé™¤
 //
 
 #include <stdio.h>
@@ -57,8 +58,6 @@
 
 static uint_fast8_t                             mcurses_scrl_start = 0;         // start of scrolling region, default is 0
 static uint_fast8_t                             mcurses_scrl_end = LINES - 1;   // end of scrolling region, default is last line
-static uint_fast8_t                             mcurses_nodelay;                // nodelay flag
-static uint_fast8_t                             mcurses_halfdelay;              // halfdelay value, in tenths of a second
 
 uint_fast8_t                                    mcurses_is_up = 0;              // flag: mcurses is up
 uint_fast8_t                                    mcurses_cury = 0xff;            // current y position of cursor, public (getyx())
@@ -69,74 +68,28 @@ static void                                     mcurses_puts_P (const char *);
 char (*FunctionPointer_getchar)(void);
 void  (*FunctionPointer_putchar)(uint_fast8_t ch);
 
-void setFunction_getchar(char (*functionPoitner)(void))
-{
+void setFunction_getchar(char (*functionPoitner)(void)) {
 	FunctionPointer_getchar = functionPoitner;
 }
 
-void setFunction_putchar(void (*functionPoitner)(uint8_t ch))
-{
+void setFunction_putchar(void (*functionPoitner)(uint8_t ch)) {
 	FunctionPointer_putchar = functionPoitner;
 }
 
-static uint_fast8_t mcurses_phyio_init (void)
-{
-
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * PHYIO: done (AVR)
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-static void mcurses_phyio_done (void)
-{
-	
-}
-
-static void mcurses_phyio_putc (uint_fast8_t ch)
-{
+static void mcurses_phyio_putc(uint_fast8_t ch) {
 	if(FunctionPointer_putchar!=0)	FunctionPointer_putchar(ch);
 }
 
-static uint_fast8_t mcurses_phyio_getc (void)
-{
+static uint_fast8_t mcurses_phyio_getc(void) {
 	if(FunctionPointer_getchar!=0)	return FunctionPointer_getchar();
 	else return 0;
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * PHYIO: set/reset nodelay (AVR)
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-static void mcurses_phyio_nodelay (uint_fast8_t flag)
-{
-    mcurses_nodelay = flag;
-}
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * PHYIO: set/reset halfdelay (AVR)
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-static void mcurses_phyio_halfdelay (uint_fast8_t tenths)
-{
-    mcurses_halfdelay = tenths;
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * PHYIO: flush output (AVR)
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-static void mcurses_phyio_flush_output ()
-{
-	
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * INTERN: put a character (raw)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-static void
-mcurses_putc (uint_fast8_t ch)
-{
+static void mcurses_putc(uint_fast8_t ch) {
     mcurses_phyio_putc (ch);
 }
 
@@ -144,14 +97,10 @@ mcurses_putc (uint_fast8_t ch)
  * INTERN: put a string from flash (raw)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-static void
-mcurses_puts_P (const char * str)
-{
+static void mcurses_puts_P(const char * str) {
     uint_fast8_t ch;
-
-    while ((ch = pgm_read_byte(str)) != '\0')
-    {
-        mcurses_putc (ch);
+    while ((ch = pgm_read_byte(str)) != '\0')  {
+        mcurses_putc(ch);
         str++;
     }
 }
@@ -162,15 +111,10 @@ mcurses_puts_P (const char * str)
  * Here we don't want to use sprintf (too big on AVR/Z80) or itoa (not available on Z80)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-static void
-mcurses_puti (uint_fast8_t i)
-{
+static void mcurses_puti(uint_fast8_t i) {
     uint_fast8_t ii;
-
-    if (i >= 10)
-    {
-        if (i >= 100)
-        {
+    if (i >= 10) {
+        if (i >= 100) {
             ii = i / 100;
             mcurses_putc (ii + '0');
             i -= 100 * ii;
@@ -191,25 +135,18 @@ mcurses_puti (uint_fast8_t i)
 #define CHARSET_G0      0
 #define CHARSET_G1      1
 
-static void
-mcurses_addch_or_insch (uint_fast8_t ch, uint_fast8_t insert)
-{
-    static uint_fast8_t  charset = 0xff;
+static void mcurses_addch_or_insch(uint_fast8_t ch, uint_fast8_t insert) {
+//    static uint_fast8_t  charset = 0xff;
     static uint_fast8_t  insert_mode = FALSE;
 
-    if (insert)
-    {
-        if (! insert_mode)
-        {
+    if (insert) {
+        if (! insert_mode) {
             mcurses_puts_P (SEQ_INSERT_MODE);
             insert_mode = TRUE;
         }
-    }
-    else
-    {
-        if (insert_mode)
-        {
-            mcurses_puts_P (SEQ_REPLACE_MODE);
+    } else  {
+        if (insert_mode) {
+            mcurses_puts_P(SEQ_REPLACE_MODE);
             insert_mode = FALSE;
         }
     }
@@ -222,20 +159,15 @@ mcurses_addch_or_insch (uint_fast8_t ch, uint_fast8_t insert)
  * INTERN: set scrolling region (raw)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-static void
-mysetscrreg (uint_fast8_t top, uint_fast8_t bottom)
-{
-    if (top == bottom)
-    {
-        mcurses_puts_P (SEQ_RESET_SCRREG);                                      // reset scrolling region
-    }
-    else
-    {
-        mcurses_puts_P (SEQ_CSI);
-        mcurses_puti (top + 1);
-        mcurses_putc (';');
-        mcurses_puti (bottom + 1);
-        mcurses_putc ('r');
+static void mysetscrreg(uint_fast8_t top, uint_fast8_t bottom) {
+    if (top == bottom) {
+        mcurses_puts_P(SEQ_RESET_SCRREG);                                      // reset scrolling region
+    } else {
+        mcurses_puts_P(SEQ_CSI);
+        mcurses_puti(top + 1);
+        mcurses_putc(';');
+        mcurses_puti(bottom + 1);
+        mcurses_putc('r');
     }
 }
 
@@ -243,48 +175,31 @@ mysetscrreg (uint_fast8_t top, uint_fast8_t bottom)
  * move cursor (raw)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-static void
-mymove (uint_fast8_t y, uint_fast8_t x)
-{
-    mcurses_puts_P (SEQ_CSI);
-    mcurses_puti (y + 1);
-    mcurses_putc (';');
-    mcurses_puti (x + 1);
-    mcurses_putc ('H');
+static void mymove(uint_fast8_t y, uint_fast8_t x) {
+    mcurses_puts_P(SEQ_CSI);
+    mcurses_puti(y + 1);
+    mcurses_putc(';');
+    mcurses_puti(x + 1);
+    mcurses_putc('H');
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: initialize
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-uint_fast8_t
-initscr (void)
-{
-    uint_fast8_t rtc;
-
-    if (mcurses_phyio_init ())
-    {
-        mcurses_puts_P (SEQ_LOAD_G1);                                               // load graphic charset into G1
-        attrset (A_NORMAL);
-        clear ();
-        move (0, 0);
-        mcurses_is_up = 1;
-        rtc = OK;
-    }
-    else
-    {
-        rtc = ERR;
-    }
-    return rtc;
+void initscr(void) {
+    mcurses_puts_P(SEQ_LOAD_G1);                                               // load graphic charset into G1
+    attrset(A_NORMAL);
+    clear();
+    move(0, 0);
+    mcurses_is_up = 1;
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: add character
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-addch (uint_fast8_t ch)
-{
+void addch(uint_fast8_t ch) {
     mcurses_addch_or_insch (ch, FALSE);
 }
 
@@ -292,12 +207,9 @@ addch (uint_fast8_t ch)
  * MCURSES: add string
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-addstr (const char * str)
-{
-    while (*str)
-    {
-        mcurses_addch_or_insch (*str++, FALSE);
+void addstr(const char * str) {
+    while (*str) {
+        mcurses_addch_or_insch(*str++, FALSE);
     }
 }
 
@@ -305,13 +217,10 @@ addstr (const char * str)
  * MCURSES: add string
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-addstr_P (const char * str)
-{
+void addstr_P(const char * str) {
     uint_fast8_t ch;
 
-    while ((ch = pgm_read_byte(str)) != '\0')
-    {
+    while ((ch = pgm_read_byte(str)) != '\0')  {
         mcurses_addch_or_insch (ch, FALSE);
         str++;
     }
@@ -322,53 +231,43 @@ addstr_P (const char * str)
  * MCURSES: set attribute(s)
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-attrset (uint_fast16_t attr)
-{
+void attrset(uint_fast16_t attr) {
     static uint_fast8_t mcurses_attr = 0xff;                    // current attributes
     uint_fast8_t        idx;
 
-    if (attr != mcurses_attr)
-    {
+    if (attr != mcurses_attr)  {
         mcurses_puts_P (SEQ_ATTRSET);
 
         idx = (attr & F_COLOR) >> 8;
 
-        if (idx >= 1 && idx <= 8)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_FCOLOR);
-            mcurses_putc (idx - 1 + '0');
+        if (idx >= 1 && idx <= 8)  {
+            mcurses_puts_P(SEQ_ATTRSET_FCOLOR);
+            mcurses_putc(idx - 1 + '0');
         }
 
         idx = (attr & B_COLOR) >> 12;
 
-        if (idx >= 1 && idx <= 8)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_BCOLOR);
-            mcurses_putc (idx - 1 + '0');
+        if (idx >= 1 && idx <= 8)  {
+            mcurses_puts_P(SEQ_ATTRSET_BCOLOR);
+            mcurses_putc(idx - 1 + '0');
         }
 
-        if (attr & A_REVERSE)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_REVERSE);
+        if (attr & A_REVERSE)  {
+            mcurses_puts_P(SEQ_ATTRSET_REVERSE);
         }
-        if (attr & A_UNDERLINE)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_UNDERLINE);
+        if (attr & A_UNDERLINE)  {
+            mcurses_puts_P(SEQ_ATTRSET_UNDERLINE);
         }
-        if (attr & A_BLINK)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_BLINK);
+        if (attr & A_BLINK) {
+            mcurses_puts_P(SEQ_ATTRSET_BLINK);
         }
-        if (attr & A_BOLD)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_BOLD);
+        if (attr & A_BOLD) {
+            mcurses_puts_P(SEQ_ATTRSET_BOLD);
         }
-        if (attr & A_DIM)
-        {
-            mcurses_puts_P (SEQ_ATTRSET_DIM);
+        if (attr & A_DIM)  {
+            mcurses_puts_P(SEQ_ATTRSET_DIM);
         }
-        mcurses_putc ('m');
+        mcurses_putc('m');
         mcurses_attr = attr;
     }
 }
@@ -377,14 +276,11 @@ attrset (uint_fast16_t attr)
  * MCURSES: move cursor
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-move (uint_fast8_t y, uint_fast8_t x)
-{
-    if (mcurses_cury != y || mcurses_curx != x)
-    {
+void move(uint_fast8_t y, uint_fast8_t x) {
+    if (mcurses_cury != y || mcurses_curx != x)  {
         mcurses_cury = y;
         mcurses_curx = x;
-        mymove (y, x);
+        mymove(y, x);
     }
 }
 
@@ -392,153 +288,96 @@ move (uint_fast8_t y, uint_fast8_t x)
  * MCURSES: delete line
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-deleteln (void)
-{
-    mysetscrreg (mcurses_scrl_start, mcurses_scrl_end);                         // set scrolling region
-    mymove (mcurses_cury, 0);                                                   // goto to current line
-    mcurses_puts_P (SEQ_DELETELINE);                                            // delete line
-    mysetscrreg (0, 0);                                                         // reset scrolling region
-    mymove (mcurses_cury, mcurses_curx);                                        // restore position
+void deleteln(void) {
+    mysetscrreg(mcurses_scrl_start, mcurses_scrl_end);                         // set scrolling region
+    mymove(mcurses_cury, 0);                                                   // goto to current line
+    mcurses_puts_P(SEQ_DELETELINE);                                            // delete line
+    mysetscrreg (0, 0);                                                        // reset scrolling region
+    mymove(mcurses_cury, mcurses_curx);                                        // restore position
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: insert line
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-insertln (void)
-{
-    mysetscrreg (mcurses_cury, mcurses_scrl_end);                               // set scrolling region
-    mymove (mcurses_cury, 0);                                                   // goto to current line
-    mcurses_puts_P (SEQ_INSERTLINE);                                            // insert line
-    mysetscrreg (0, 0);                                                         // reset scrolling region
-    mymove (mcurses_cury, mcurses_curx);                                        // restore position
+void insertln(void) {
+    mysetscrreg (mcurses_cury, mcurses_scrl_end);                              // set scrolling region
+    mymove(mcurses_cury, 0);                                                   // goto to current line
+    mcurses_puts_P(SEQ_INSERTLINE);                                            // insert line
+    mysetscrreg(0, 0);                                                         // reset scrolling region
+    mymove(mcurses_cury, mcurses_curx);                                        // restore position
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: scroll
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-scroll (void)
-{
-    mysetscrreg (mcurses_scrl_start, mcurses_scrl_end);                         // set scrolling region
-    mymove (mcurses_scrl_end, 0);                                               // goto to last line of scrolling region
-    mcurses_puts_P (SEQ_NEXTLINE);                                              // next line
-    mysetscrreg (0, 0);                                                         // reset scrolling region
-    mymove (mcurses_cury, mcurses_curx);                                        // restore position
+void scroll(void) {
+    mysetscrreg (mcurses_scrl_start, mcurses_scrl_end);                        // set scrolling region
+    mymove(mcurses_scrl_end, 0);                                               // goto to last line of scrolling region
+    mcurses_puts_P (SEQ_NEXTLINE);                                             // next line
+    mysetscrreg(0, 0);                                                         // reset scrolling region
+    mymove(mcurses_cury, mcurses_curx);                                        // restore position
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: clear
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-clear (void)
-{
-    mcurses_puts_P (SEQ_CLEAR);
+void clear(void) {
+    mcurses_puts_P(SEQ_CLEAR);
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: clear to bottom of screen
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-clrtobot (void)
-{
-    mcurses_puts_P (SEQ_CLRTOBOT);
+void clrtobot(void) {
+    mcurses_puts_P(SEQ_CLRTOBOT);
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: clear to end of line
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-clrtoeol (void)
-{
-    mcurses_puts_P (SEQ_CLRTOEOL);
+void clrtoeol(void) {
+    mcurses_puts_P(SEQ_CLRTOEOL);
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: delete character at cursor position
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-delch (void)
-{
-    mcurses_puts_P (SEQ_DELCH);
+void delch(void) {
+    mcurses_puts_P(SEQ_DELCH);
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: insert character
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-insch (uint_fast8_t ch)
-{
-    mcurses_addch_or_insch (ch, TRUE);
+void insch(uint_fast8_t ch) {
+    mcurses_addch_or_insch(ch, TRUE);
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: set scrolling region
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-setscrreg (uint_fast8_t t, uint_fast8_t b)
-{
+void setscrreg(uint_fast8_t t, uint_fast8_t b) {
     mcurses_scrl_start = t;
     mcurses_scrl_end = b;
 }
 
-void
-curs_set (uint_fast8_t visibility)
-{
-    mcurses_puts_P (SEQ_CURSOR_VIS);
-
-    if (visibility == 0)
-    {
-        mcurses_putc ('l');
-    }
-    else
-    {
-        mcurses_putc ('h');
+void curs_set(uint_fast8_t visibility) {
+    mcurses_puts_P(SEQ_CURSOR_VIS);
+    if (visibility == 0)  {
+        mcurses_putc('l');
+    } else {
+        mcurses_putc('h');
     }
 }
 
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * MCURSES: refresh: flush output
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-void
-refresh (void)
-{
-    mcurses_phyio_flush_output ();
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * MCURSES: set/reset nodelay
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-void
-nodelay (uint_fast8_t flag)
-{
-    if (mcurses_nodelay != flag)
-    {
-        mcurses_phyio_nodelay (flag);
-    }
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
- * MCURSES: set/reset halfdelay
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-void
-halfdelay (uint_fast8_t tenths)
-{
-    mcurses_phyio_halfdelay (tenths);
-}
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: read key
@@ -546,7 +385,7 @@ halfdelay (uint_fast8_t tenths)
  */
 
 #define MAX_KEYS    (23)
-#define KW(k,s) const char k[] PROGMEM=s  // ƒL[ƒ[ƒh’è‹`ƒ}ƒNƒ
+#define KW(k,s) const char k[] PROGMEM=s  // ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰å®šç¾©ãƒã‚¯ãƒ­
 KW(k00,"B");  KW(k01,"A");  KW(k02,"D");  KW(k03,"C");  KW(k04,"1~"); 
 KW(k05,"3~"); KW(k06,"2~"); KW(k07,"6~"); KW(k08,"5~"); KW(k09,"4~");
 KW(k10,"Z");  KW(k11,"11~");KW(k12,"12~");KW(k13,"13~");KW(k14,"14~");
@@ -585,13 +424,11 @@ const char const function_keys_code[] PROGMEM = {
   KEY_F12    ,               // Function key F12
 };
 
-uint_fast8_t
-getch (void) {
+uint_fast8_t getch(void) {
     char    buf[4];
     uint_fast8_t ch;
     uint_fast8_t idx;
 
-    refresh ();
     ch = mcurses_phyio_getc ();
 
     if (ch == 0x7F) {                                                           // BACKSPACE on VT200 sends DEL char
@@ -618,8 +455,8 @@ getch (void) {
             buf[idx] = '\0';
 
             for (idx = 0; idx < MAX_KEYS; idx++)  {
-               if (!strcmp_P(buf,(char*)pgm_read_word(&function_keys[idx])))   {
-                  ch = pgm_read_byte(&function_keys_code[idx]);
+               if (!strcmp_P(buf,(char*)pgm_read_word(function_keys+idx)))   {
+                  ch = pgm_read_byte(function_keys_code+idx);
                   break;
                 }
             }
@@ -635,105 +472,14 @@ getch (void) {
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------
- * MCURSES: read string (with mini editor built-in)
- *---------------------------------------------------------------------------------------------------------------------------------------------------
- */
-void
-getnstr (char * str, uint_fast8_t maxlen)
-{
-    uint_fast8_t ch;
-    uint_fast8_t curlen = 0;
-    uint_fast8_t curpos = 0;
-    uint_fast8_t starty;
-    uint_fast8_t startx;
-    uint_fast8_t i;
-
-    maxlen--;                               // reserve one byte in order to store '\0' in last position
-    getyx (starty, startx);                 // get current cursor position
-
-    while ((ch = getch ()) != KEY_CR)
-    {
-        switch (ch)
-        {
-            case KEY_LEFT:
-                if (curpos > 0)
-                {
-                    curpos--;
-                }
-                break;
-            case KEY_RIGHT:
-                if (curpos < curlen)
-                {
-                    curpos++;
-                }
-                break;
-            case KEY_HOME:
-                curpos = 0;
-                break;
-            case KEY_END:
-                curpos = curlen;
-                break;
-            case KEY_BACKSPACE:
-                if (curpos > 0)
-                {
-                    curpos--;
-                    curlen--;
-                    move (starty, startx + curpos);
-
-                    for (i = curpos; i < curlen; i++)
-                    {
-                        str[i] = str[i + 1];
-                    }
-                    str[i] = '\0';
-                    delch();
-                }
-                break;
-
-            case KEY_DC:
-                if (curlen > 0)
-                {
-                    curlen--;
-                    for (i = curpos; i < curlen; i++)
-                    {
-                        str[i] = str[i + 1];
-                    }
-                    str[i] = '\0';
-                    delch();
-                }
-                break;
-
-            default:
-//                if (curlen < maxlen && (ch & 0x7F) >= 32 && (ch & 0x7F) < 127)      // printable ascii 7bit or printable 8bit ISO8859
-                if (curlen < maxlen /*&& (ch & 0x7F) >= 32*/ ) // 2017/08/04  2017/08/04 by Tamalichi
-                {
-                    for (i = curlen; i > curpos; i--)
-                    {
-                        str[i] = str[i - 1];
-                    }
-                    insch (ch);
-                    str[curpos] = ch;
-                    curpos++;
-                    curlen++;
-                }
-        }
-        move (starty, startx + curpos);
-    }
-    str[curlen] = '\0';
-}
-
-/*---------------------------------------------------------------------------------------------------------------------------------------------------
  * MCURSES: endwin
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
-void
-endwin (void)
-{
-    move (LINES - 1, 0);                                                        // move cursor to last line
-    clrtoeol ();                                                                // clear this line
-    mcurses_putc ('\017');                                                      // switch to G0 set
-    curs_set (TRUE);                                                            // show cursor
-    mcurses_puts_P(SEQ_REPLACE_MODE);                                           // reset insert mode
-    refresh ();                                                                 // flush output
-    mcurses_phyio_done ();                                                      // end of physical I/O
+void endwin(void) {
+    move(LINES - 1, 0);                                                        // move cursor to last line
+    clrtoeol();                                                                // clear this line
+    mcurses_putc('\017');                                                      // switch to G0 set
+    curs_set(TRUE);                                                            // show cursor
+    mcurses_puts_P(SEQ_REPLACE_MODE);                                          // reset insert mode
     mcurses_is_up = 0;
 }

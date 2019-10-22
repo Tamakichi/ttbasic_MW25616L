@@ -1,3 +1,6 @@
+// VFD MW252616L 制御ライブラリ
+// 最終更新日 2019/05/28 by たま吉さん
+
 #ifndef _MW252616L_H_
 #define _MW252616L_H_
 
@@ -42,28 +45,28 @@ class MW25616L {
    void mw_claerbuf();
 
 #endif
-   void mw_put(unsigned char onebyte);   // 1byteデータ書き込み
+   void mw_put(uint8_t onebyte);         // 1byteデータ書き込み
    void mw_clr();                        // 画面クリア      
    void wr_lat();                        // LATパルス
 
    void setBright(uint8_t level);        // 輝度の設定
    void display(uint8_t sw);             // 表示設定
 
-   void mw_put_t(uint8_t* tablename,int dn);                  // テーブルデータの連続書き込み
-   void mw_put_s(uint8_t* tablename,int dn,int stime);        // テーブルデータのスクロール表示
-   void disp_non(int n);                                      // 空白表示（n:横ドット数）
-   void disp_non_t(int n, int t);                             // 空白表示スクロール（n:横ドット数, t:停止時間）
+   void mw_put_t(uint8_t* tablename,uint16_t dn);             // テーブルデータの連続書き込み
+   void mw_put_s(uint8_t* tablename,uint16_t dn,uint16_t stime); // テーブルデータのスクロール表示
+   void disp_non(uint16_t n);                                 // 空白表示（n:横ドット数）
+   void disp_non_t(uint16_t n, uint16_t t);                   // 空白表示スクロール（n:横ドット数, t:停止時間）
  
    void dispFont16x16(uint8_t* matrixdata32);                 // VFDに16x16フォントを表示（1文字分のデータ送信のみ/LATなし）
    void dispFont16x16d2(uint8_t* matrixdata32);               // VFDに16x16フォントを表示（1文字分のデータ送信のみ/LATなし）
-   void dispFont16x16s(uint8_t* matrixdata32,int t);          // VFDに16x16フォントを表示（スクロール表示）
-   void dispFont16x16sd2(uint8_t* matrixdata32,int t);        // VFDに16x16フォントを表示（スクロール表示）
+   void dispFont16x16s(uint8_t* matrixdata32,uint16_t t);     // VFDに16x16フォントを表示（スクロール表示）
+   void dispFont16x16sd2(uint8_t* matrixdata32,uint16_t t);   // VFDに16x16フォントを表示（スクロール表示）
    void dispFont8x16(uint8_t* matrixdata16);                  // VFDに8x16フォントを表示（1文字分のデータ送信のみ/LATなし）
-   void dispFont8x16s(uint8_t* matrixdata16, int t);          // VFDに8x16フォントを表示（スクロール表示）
+   void dispFont8x16s(uint8_t* matrixdata16, uint16_t t);     // VFDに8x16フォントを表示（スクロール表示）
 
-   void dispSJIS1byte(uint16_t sjis, int t);                          // 1byteのSJISをスクロール表示する
-   void dispSJIS2byte(uint16_t sjis, int t) ;                         // 2byteのSJISをスクロール表示する
-   void dispSentence(const uint8_t* tablename,int t, uint8_t flgZ=0,uint8_t flgLat=0); // SJISコードの文字列をVFDにスクロール表示する
+   void dispSJIS1byte(uint16_t sjis, uint16_t t);             // 1byteのSJISをスクロール表示する
+   void dispSJIS2byte(uint16_t sjis, uint16_t t) ;            // 2byteのSJISをスクロール表示する
+   void dispSentence(const uint8_t* tablename,uint16_t t, uint8_t flgZ=0,uint8_t flgLat=0); // SJISコードの文字列をVFDにスクロール表示する
    
  public:
    static void mw_shiftOut(uint8_t dataPin,uint8_t clockPin,uint8_t bitOrder,byte val);
