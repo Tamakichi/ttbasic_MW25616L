@@ -170,11 +170,18 @@ void inshift() {
   int16_t flg = 1;
 
   if (chkNinit()) return;   
-  if (getParam(dir, 0, 1, false)) return;
+  if (getParam(dir, false)) return;
   if(*cip == I_COMMA) {
     cip++;
     if ( getParam(flg, 0, 1, false) ) return;
   }
+  if (dir == 28) dir = 0; // Up
+  if (dir == 29) dir = 1; // down
+  
+  if (dir <0 || dir >1) {
+      err = ERR_VALUE;
+      return;
+  }  
   np.shiftPixel(dir, flg);
 }
 #endif
