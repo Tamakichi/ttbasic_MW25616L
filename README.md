@@ -1,4 +1,4 @@
-# 豊四季タイニーBASIC for Arduino機能拡張版
+# 豊四季タイニーBASIC for Arduino機能拡張版 V0.07
 
 ![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg) ![image](./image/top04.jpg)  
 
@@ -8,6 +8,10 @@
 
 - オリジナル版配布サイト：<https://github.com/vintagechips/ttbasic_arduino>
 - ​関連情報：  [電脳伝説 Vintagechips - 豊四季タイニーBASIC確定版](https://vintagechips.wordpress.com/2015/12/06/%E8%B1%8A%E5%9B%9B%E5%AD%A3%E3%82%BF%E3%82%A4%E3%83%8B%E3%83%BCbasic%E7%A2%BA%E5%AE%9A%E7%89%88/)  
+
+## 更新情報
+
+- 2019/10/29 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0101）
 
 ## 対応ハードウェア
 
@@ -67,7 +71,7 @@
   - 日本語漢字フォント ROM GT20L16J1Y対応（16x16ドット日本語表示対応）
     ​
 
-本プログラムに実装において、下記の公開ソースの一部を流用しています。  
+本プログラムに実装においては、下記の公開ソースの一部を流用しています。  
 
 - mcursesライブラリ（組込済み）  
 <https://github.com/ChrisMicro/mcurses>
@@ -77,6 +81,9 @@
 
 - TimerOne Library（組込済み）  
 <https://github.com/PaulStoffregen/TimerOne>
+
+- 美咲フォント  
+<http://littlelimit.net/misaki.htm>
 
 その他の利用方法については、付属のリファレンス・マニュアルを参照して下さい。  
 
