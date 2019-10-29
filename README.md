@@ -3,6 +3,7 @@
 ![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg) ![image](./image/top04.jpg)  
 
 ![image/screen.png](image/screen01.png)  
+  
 
 本プログラムは、オリジナル版「**TOYOSHIKI Tiny BASIC for Arduino**」を 機能拡張したバージョンです。  
 
@@ -85,7 +86,8 @@
 - 美咲フォント  
 <http://littlelimit.net/misaki.htm>
 
-その他の利用方法については、付属のリファレンス・マニュアルを参照して下さい。  
+その他の利用方法については、付属のリファレンス・マニュアル(PDF形式)を参照して下さい。  
+ ![image/screen.png](image/book.png)
 
 ## スケッチコンパイルオプションについて
 
