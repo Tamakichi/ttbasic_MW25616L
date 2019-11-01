@@ -53,6 +53,7 @@
 //  修正 2019/09/11 NEW、LIST、RENUM、DELETE、LOAD、SAVEを一般コマンドに変更
 //  修正 2019/09/11 LOADでプログラム中で別プログラムをロード実行可能に修正
 //  修正 2019/10/08 NeoPixelのエラーメッセージの追加
+//  修正 2019/11/01 Else単独記述時、直前のIf判定結果で実行する機能の追加
 //
 
 #include <Arduino.h>
@@ -475,7 +476,7 @@ uint8_t* gstk[SIZE_GSTK];    // GOSUB スタック
 uint8_t gstki;               // GOSUB スタック インデックス
 uint8_t* lstk[SIZE_LSTK];    // FOR スタック
 uint8_t lstki;               // FOR 市タック インデックスtoktoi()
-
+uint8_t val_if = 1;          // if文判定結果
 uint8_t prevPressKey = 0;    // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
 
 
@@ -1624,6 +1625,7 @@ void iif() {
     err = ERR_IFWOC;  // エラー番号をセット
     return;
   }
+  val_if = condition; // 判定結果を保持
   if (condition) {    // もし真なら
     return;
   } else { 
@@ -1637,6 +1639,14 @@ void iif() {
       return;
     }
     iskip(); // ELSE以降をスキップ
+  }
+}
+
+// 単独ELSE
+void ielse() {
+  if(val_if) {
+    // 直前のIF文の真偽が真の場合、ELSE以降をスキップ   
+    iskip(); 
   }
 }
 
@@ -2370,7 +2380,7 @@ uint8_t* iexe() {
     case I_FOR:      ifor();            break;  // FORの場合
     case I_NEXT:     inext();           break;  // NEXTの場合
     case I_IF:       iif();             break;  // IFの場合
-    case I_ELSE:                                // 単独のELSEの場合
+    case I_ELSE:     ielse();           break;  // 単独のELSEの場合    
     case I_SQUOT:                               // 'の場合
     case I_REM:      iskip();           break;  // REMの場合
     case I_END:      iend();            break;  // ENDの場合
@@ -2490,6 +2500,7 @@ void initProgram() {
   lstki = 0;         // FORスタックインデクスを0に初期化
   clp = listbuf;     // 行ポインタをプログラム保存領域の先頭に設定
   cip = clp+3;       // 中間コードポインタを先頭に設定
+  val_if = 1;        // if文判定結果の初期化
 }
 
 // RUNコマンド

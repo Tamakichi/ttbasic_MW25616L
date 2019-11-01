@@ -9,6 +9,7 @@
 // 修正 2019/08/08 LEDコマンド、定数の追加
 // 修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
 // 修正 2019/10/08 NeoPixelのエラーメッセージの追加
+// 修正 2019/11/01 Else単独記述時、直前のIf判定結果で実行する機能の追加
 //
 
 #ifndef __basic_h__
@@ -183,7 +184,7 @@ extern uint8_t listbuf[SIZE_LIST];   // プログラム領域
 extern uint8_t* cip;                 // インタプリタ中間コード参照位置
 extern uint8_t* clp;                 // カレント行先頭ポインタ
 extern uint8_t prevPressKey;         // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
-
+extern uint8_t val_if;              // if文判定結果
 extern uint8_t gstki;               // GOSUB スタック インデックス
 extern uint8_t lstki;               // FOR 市タック インデックスtoktoi()
 
