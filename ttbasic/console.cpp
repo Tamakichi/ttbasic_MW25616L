@@ -3,7 +3,7 @@
 // コンソール関連（スクリーン制御、ラインエディタ等）
 // 作成 2019/06/08 by たま吉さん 
 // 修正 2019/06/30 ライン先頭全角文字のカーソル移動ミス対応、line_movePrevChar()の不具合修正
-//
+// 修正 2019/11/14 c_gets():[BS]キーでの全角文字の処理不具合対応
 //
 
 #include "Arduino.h"
@@ -275,7 +275,9 @@ void c_gets() {
          }
       }
     } else if ( (c == KEY_BACKSPACE) && (len > 0) && (pos > 0) ) { // [BS]キー
-      if (pos > 1 && isZenkaku(lbuf[pos-2])) {
+      //if (pos > 1 && isZenkaku(lbuf[pos-2])) { // 2019/11/14 全角判定ミス対応
+      if ( (pos > 1 ) && (isJMS(lbuf,pos-1) == 2) ) {
+
         // 全角文字の場合、2文字削除
         pos-=2;
         len-=2;
