@@ -4,7 +4,6 @@
 
 ![image/screen.png](image/screen01.png)  
   
-
 本プログラムは、オリジナル版「**TOYOSHIKI Tiny BASIC for Arduino**」を 機能拡張したバージョンです。  
 
 - オリジナル版配布サイト：<https://github.com/vintagechips/ttbasic_arduino>
@@ -12,6 +11,7 @@
 
 ## 更新情報
 
+- 2019/11/14 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102-2）
 - 2019/11/02 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102-1）
 - 2019/11/01 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102）、単独Else追加
 - 2019/10/29 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0101）
