@@ -1,4 +1,4 @@
-# 豊四季タイニーBASIC for Arduino機能拡張版 V0.07
+# 豊四季タイニーBASIC for Arduino機能拡張版 V0.08
 
 ![image](./image/top01.jpg) ![image](./image/top02.jpg) ![image](./image/top03.jpg) ![image](./image/top04.jpg)  
 
@@ -11,6 +11,7 @@
 
 ## 更新情報
 
+- 2020/02/20 Arduino Mega2560でフルスクリーンエディタ対応  
 - 2019/11/14 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102-2）、BSキー不具合対応
 - 2019/11/02 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102-1）
 - 2019/11/01 リファレンスマニュアル(PDF)の更新 （⇒ 正式版 R0102）、単独Else追加
@@ -36,7 +37,7 @@
 
   日本語シフトJIS文字もサポートします。
 
-- ラインエディタの編集機能拡張
+- ラインエディタの編集機能拡張（Arduino Unoの場合）
 
   - 編集キー [←] [→] によるカーソル移動
   - 編集キー[↑] [↓]、 [PageUP][PageDOWN] による上下の行の表示
@@ -46,6 +47,8 @@
   - エラー発生時、[TAB]による該当行の表示
   - [F2]キー、[CTRL+D]による、行クリア
   - [F1]キー、[CTRL+L]による、画面クリア
+
+- スクリーンエディタ対応（Arduino Mega2560の場合）
 
 - 内部EEPROM及びI2C接続EEPROMへのプログラム保存・読み込み（SAVE、LOAD、RRASE、FILES）
 
@@ -99,6 +102,9 @@
 **Arduino MEGA2560**では、VFD以外は全ての機能が有効設定になっています。  
 
 ```cpp
+#define USE_ALL_KEYWORD  1   // 未使用キーワードも有効にする(1:有効 2:無効 デフォルト:1)
+#define USE_FULLSCREEN   1   // Mega2560フルスクリーンエディタ対応(1:有効 2:無効 デフォルト:1)
+
 #ifndef ARDUINO_AVR_MEGA2560
 // ** 機能利用オプション設定 for Arduino Uno *********************************
 #define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
@@ -118,24 +124,25 @@
 #define USE_MISAKIFONT 0  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:0)
 #define USE_NEOPIXEL   0  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_EVENT      1  // タイマー・外部割込みイベントの利用(0:利用しない 1:利用する デフォルト:1)
-#define USE_SLEEP      1  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:1) ※USE_EVENTを利用必須#else
+#define USE_SLEEP      1  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:1) ※USE_EVENTを利用必須
+#else
 // ** 機能利用オプション設定 for Arduino MEGA2560******************************
-#define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_PULSEIN    1  // PULSEIN関数の利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_SHIFTIN    1  // SHIFTIN関数の利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_SHIFTOUT   1  // SHIFTOUTコマンドの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_CMD_VFD    0  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
-#define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_I2CEEPROM  1  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:1)
 #define USE_SYSINFO    1  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:1)
 #define USE_GRADE      1  // GRADE関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
 #define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
-#define USE_SO1602AWWB 1  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
-#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:0)
-#define USE_NEOPIXEL   1  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_SO1602AWWB 1  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:1)
+#define USE_MISAKIFONT 1  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:1)
+#define USE_NEOPIXEL   1  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_EVENT      1  // タイマー・外部割込みイベントの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_SLEEP      1  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:1) ※USE_EVENTを利用必須
 #endif
