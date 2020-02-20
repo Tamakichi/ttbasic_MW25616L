@@ -54,6 +54,7 @@
 //  修正 2019/09/11 LOADでプログラム中で別プログラムをロード実行可能に修正
 //  修正 2019/10/08 NeoPixelのエラーメッセージの追加
 //  修正 2019/11/01 Else単独記述時、直前のIf判定結果で実行する機能の追加
+//  修正 2020/02/20 Arduino Mega2560のフルスクリーンエディタ対応
 //
 
 #include <Arduino.h>
@@ -67,7 +68,7 @@
 //*** 機器依存識別 ********************************
 #define STR_EDITION_ \
 "TOYOSHIKI TINY BASIC\n" \
-"ARDUINO Extended version 0.07\n"
+"ARDUINO Extended version 0.08\n"
 
 //*** 仮想メモリ定義 ******************************
 #define V_VRAM_TOP  0x0000    // VRAM領域先頭
@@ -478,7 +479,6 @@ uint8_t* lstk[SIZE_LSTK];    // FOR スタック
 uint8_t lstki;               // FOR 市タック インデックスtoktoi()
 uint8_t val_if = 1;          // if文判定結果
 uint8_t prevPressKey = 0;    // 直前入力キーの値(INKEY()、[ESC]中断キー競合防止用)
-
 
 //*** 関数の定義 ***********************************
 
@@ -2530,20 +2530,6 @@ uint8_t icom() {
   //c_show_curs(0);  
   switch (*cip++) { // 中間コードポインタが指し示す中間コードによって分岐
   case I_RUN:   irun();     break;  // RUN命令
-
-/* システムコマンドの一部を一般コマンドに変更
-  case I_LIST:  ilist();    break;  // LIST
-  case I_RENUM: irenum();   break;  // RENUMの場合
-  case I_DELETE:idelete();  break;  // DELETE
-  case I_NEW:   inew();     break;  // NEW  
-  case I_LOAD:  iLoadSave(MODE_LOAD); break;  // LOAD
-  case I_SAVE:  iLoadSave(MODE_SAVE); break;  // SAVE
-  case I_ERASE: ierase();   break;  // ERASE
-  case I_FILES: ifiles();   break;  // FILES
-  case I_FORMAT:iformat();  break;  // FORMAT
-  case I_DRIVE: idrive();   break;  // DRIVE
-  case I_CLS:   icls();
-*/  
   case I_REM:
   case I_SQUOT:
   case I_OK:    rc = 0;     break; // I_OKの場合
@@ -2606,12 +2592,15 @@ void basic() {
   // 端末から1行を入力して実行
   c_show_curs(1);
   for (;;) { //無限ループ
-    c_putch('>'); // プロンプトを表示
     c_gets();     // ラインエディタ（lbufに格納）
     if(!strlen((char*)lbuf))  continue;
+    if (err) {      // もしエラーが発生したら
+      error();      // エラーメッセージを表示してエラー番号をクリア
+      continue;     // 繰り返しの先頭へ戻ってやり直し
+    }
 
     // 1行の文字列を中間コードの並びに変換
-    len = toktoi(); // 文字列を中間コードに変換して長さを取得（ibufに買機能）
+    len = toktoi(); // 文字列を中間コードに変換して長さを取得
     if (err) {      // もしエラーが発生したら
       clp = NULL;
       error();      // エラーメッセージを表示してエラー番号をクリア

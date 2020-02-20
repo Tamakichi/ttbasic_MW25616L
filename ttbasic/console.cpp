@@ -4,6 +4,7 @@
 // 作成 2019/06/08 by たま吉さん 
 // 修正 2019/06/30 ライン先頭全角文字のカーソル移動ミス対応、line_movePrevChar()の不具合修正
 // 修正 2019/11/14 c_gets():[BS]キーでの全角文字の処理不具合対応
+// 修正 2020/02/20 Arduino Mega2560のフルスクリーンエディタ対応
 //
 
 #include "Arduino.h"
@@ -12,6 +13,15 @@
 // mcursesライブラリ(修正版)
 // オリジナル版を修正して組み込み：https://github.com/ChrisMicro/mcurses
 #include "src/lib/mcurses.h"
+
+// Arduono Mega2560用フルスクリーンエディタ対応
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  #include "src/lib/tscreenBase.h"  // コンソール基本
+  #include "src/lib/tTermscreen.h"  // シリアルコンソール
+  tTermscreen sc;                   // ターミナルスクリーン
+#endif
+
+void error(uint8_t flgCmd = false);
 
 uint8_t flgCurs = 0;
 // シリアル経由1文字出力(mcursesから利用）
@@ -31,18 +41,30 @@ void c_beep() {
 }
 
 void c_addch(uint8_t c) {
-  if (c=='\n')
+  if (c=='\n') {
     c_newLine();
-  else
+  } else {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+    sc.putch(c);
+#else
     addch(c);
+#endif
+  }
 }
 
 uint8_t c_getch() {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  return sc.get_ch();
+#else
   return getch();
+#endif
 }
 
 // 改行
 void c_newLine() {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+   sc.newLine();
+#else
   int16_t x,y;
   getyx(y,x);
   if (y>=MCURSES_LINES-1) {
@@ -51,27 +73,42 @@ void c_newLine() {
   } else {
     move(y+1,0);  
   }  
+#endif
 }
 
 // コンソール初期化
 void init_console() {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.init(TERM_W,TERM_H,SIZE_LINE, NULL); // スクリーン初期設定
+  sc.cls();
+#else
   // mcursesの設定
   setFunction_putchar(Arduino_putchar);  // 依存関数
   setFunction_getchar(Arduino_getchar);  // 依存関数
   initscr();                             // 依存関数
   setscrreg(0,MCURSES_LINES);  
+#endif
 }
 
 // カーソル表示制御
 void c_show_curs(uint8_t mode) {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.show_curs(mode);
+#else
   flgCurs = mode;
   curs_set(mode);
+#endif
 }
 
 // 画面クリア
 void icls() {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.cls();
+  sc.locate(0,0);
+#else
   clear();
   move(0,0);
+#endif
 }
 
 // カーソル移動 LOCATE x,y
@@ -80,14 +117,26 @@ void ilocate() {
 
   if ( getParam(x, true) || getParam(y, false)) return;
   if ( x >= c_getWidth() )   // xの有効範囲チェック
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+     x = sc.getWidth() - 1;
+#else
      x = c_getWidth() - 1;
+#endif
   else if (x < 0)  x = 0;  
   if( y >= c_getHeight() )   // yの有効範囲チェック
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+     y = sc.getHeight() - 1;
+#else
      y = c_getHeight() - 1;
+#endif
   else if(y < 0)   y = 0;
 
   // カーソル移動
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.locate((uint16_t)x, (uint16_t)y);
+#else
   move(y,x);
+#endif
 }
 
 // 文字色/属性テーブル
@@ -105,14 +154,22 @@ void icolor() {
     cip++;
     if ( getParam(bc, 0, 8, false) ) return;  
   }
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.setColor((uint16_t)fc, (uint16_t)bc);  
+#else
   attrset(pgm_read_word(&tbl_fcolor[fc])|(pgm_read_word(&tbl_fcolor[bc])<<4));
+#endif
 }
 
 // 文字属性の指定 ATTRコマンド
 void iattr() {
   int16_t attr;
   if ( getParam(attr, 0, 4, false) ) return;
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  sc.setAttr(attr); 
+#else
   attrset(pgm_read_byte(&tbl_attr[attr]));
+#endif
 }
 
 // 文末空白文字のトリム処理
@@ -216,6 +273,33 @@ void line_redrawLine(uint8_t ln,uint8_t pos,uint8_t len) {
 
 // ラインエディタ
 void c_gets() {
+#if defined(ARDUINO_AVR_MEGA2560) && (USE_FULLSCREEN == 1)
+  uint8_t len;       // 中間コードの長さ
+  uint8_t rc;        // 関数戻り値受け取り用
+  char*   textline;  // 入力テキスト戦闘アドレス
+
+  rc = sc.edit();    // エディタ入力
+  if (rc) {
+    textline = (char*)sc.getText(); // スクリーンバッファからテキスト取得
+    if (!strlen(textline) ) {
+      // 改行のみ
+      //newline();
+    }
+    
+    if (strlen(textline) >= SIZE_LINE) {
+      // 入力文字が有効文字長を超えている
+       err = ERR_VOF;  // 仮のエラーコード
+       newline();
+       return;
+    }
+    // 行バッファに格納し、改行する
+    strcpy(lbuf, textline);
+    tlimR((char*)lbuf); //文末の余分空白文字の削除
+    newline();
+  } else {
+    // 入力なし
+  }
+#else
   uint8_t x,y;
   uint8_t c;               // 文字
   uint8_t len = 0;         // 文字数
@@ -224,6 +308,8 @@ void c_gets() {
   int16_t tempindex;
   uint8_t *text;
   int16_t value, tmp;
+
+  c_putch('>');            // プロンプトを表示
 
   getyx(y,x);
   clearlbuf();
@@ -276,7 +362,7 @@ void c_gets() {
       }
     } else if ( (c == KEY_BACKSPACE) && (len > 0) && (pos > 0) ) { // [BS]キー
       //if (pos > 1 && isZenkaku(lbuf[pos-2])) { // 2019/11/14 全角判定ミス対応
-      if ( (pos > 1 ) && (isJMS(lbuf,pos-1) == 2) ) {
+      if ( ((pos > 1 ) && (isJMS(lbuf,pos-1) == 2)) ) {
 
         // 全角文字の場合、2文字削除
         pos-=2;
@@ -354,4 +440,5 @@ void c_gets() {
     while (c_isspace(lbuf[--len])); //末尾の空白を戻る
     lbuf[++len] = 0; //終端を置く
   }
+#endif
 }

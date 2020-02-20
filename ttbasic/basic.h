@@ -10,6 +10,7 @@
 // 修正 2019/08/12 SLEEP機能の追加(SLEEPコマンド)
 // 修正 2019/10/08 NeoPixelのエラーメッセージの追加
 // 修正 2019/11/01 Else単独記述時、直前のIf判定結果で実行する機能の追加
+// 修正 2020/02/20 Arduino Mega2560のフルスクリーンエディタ対応
 //
 
 #ifndef __basic_h__
@@ -18,16 +19,29 @@
 #include "Arduino.h"
 #include "ttconfig.h"
 
-#define MYSIGN      "TBU7"    // EPPROM識別用シグニチャ
+#define MYSIGN      "TBU8"    // EPPROM識別用シグニチャ
 
 //***  TOYOSHIKI TinyBASIC 利用ワークメモリサイズ等定義 ***
-#define LINELEN   64          // 1行の文字数
-#define SIZE_LINE 64          // コマンドラインテキスト有効長さ
-#define SIZE_IBUF 64          // 行当たりの中間コード有効サイズ
-#define SIZE_LIST PRGAREASIZE // BASICプログラム領域サイズ
-#define SIZE_ARRY ARRYSIZE    // 配列利用可能数 @(0)～@(定義数-1)
-#define SIZE_GSTK 6           // GOSUB stack size(2/nest)
-#define SIZE_LSTK 15          // FOR stack size(5/nest)
+#ifdef ARDUINO_AVR_MEGA2560
+  #define LINELEN   128         // 1行の文字数
+  #define SIZE_LINE 128         // コマンドラインテキスト有効長さ
+  #define SIZE_IBUF 128         // 行当たりの中間コード有効サイズ
+  #define SIZE_LIST PRGAREASIZE // BASICプログラム領域サイズ
+  #define SIZE_ARRY ARRYSIZE    // 配列利用可能数 @(0)～@(定義数-1)
+  #define SIZE_GSTK 6           // GOSUB stack size(2/nest)
+  #define SIZE_LSTK 15          // FOR stack size(5/nest)
+#else // Arduino Uno
+  #define LINELEN   64          // 1行の文字数
+  #define SIZE_LINE 64          // コマンドラインテキスト有効長さ
+  #define SIZE_IBUF 64          // 行当たりの中間コード有効サイズ
+  #define SIZE_LIST PRGAREASIZE // BASICプログラム領域サイズ
+  #define SIZE_ARRY ARRYSIZE    // 配列利用可能数 @(0)～@(定義数-1)
+  #define SIZE_GSTK 6           // GOSUB stack size(2/nest)
+  #define SIZE_LSTK 15          // FOR stack size(5/nest)
+#endif
+
+#define TERM_W       80
+#define TERM_H       24
 
 // キャラクタ入出力デバイス選択定義 
 #define CDEV_SCREEN   0  // メインスクリーン
@@ -193,8 +207,8 @@ extern uint8_t lstki;               // FOR 市タック インデックスtoktoi
 // 出力制御他版との互換用
 uint8_t c_getch();
 #define c_kbhit() (Serial.available()?c_getch():0)
-#define c_getHeight()  24
-#define c_getWidth()   80
+#define c_getHeight()  TERM_H
+#define c_getWidth()   TERM_W
 #define c_IsCurs()     flgCurs
 
 void clearlbuf() ;
