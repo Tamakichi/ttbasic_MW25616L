@@ -1,10 +1,17 @@
 //
-// 豊四季Tiny BASIC for Arduino STM32 シリアルデバイス制御
+// 豊四季Tiny BASIC for Arduino STM32/AVR シリアルデバイス制御
 // 2017/07/19 by たま吉さん
+//
+//  修正日 2020/07/25 Arduino(AVR)対応
+
 //
 
 #ifndef __tSerialDev_h__
 #define __tSerialDev_h__
+
+#ifndef Serial1
+ #define Serial1 Serial
+#endif
 
 class tSerialDev {
   protected:
