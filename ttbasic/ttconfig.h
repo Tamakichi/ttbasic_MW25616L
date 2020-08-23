@@ -7,6 +7,7 @@
 // 修正 2019/09/07 機能利用オプション設定のデフォルト設定の見直し
 // 修正 2019/10/08 MEGA2560用の機能利用オプション設定を追加
 // 修正 2020/02/20 Arduino Mega2560のフルスクリーンエディタ対応
+// 修正 2020/07/28 MW25616L 実験用表示モジュール用のパラメタ設定対応
 //
 
 #ifndef __ttconfig_h__
@@ -18,10 +19,12 @@
  * デフォルトの設定は Arduino UNO 用の設定になっています。
  * 「アクティブマトリクス蛍光表示管（CL-VFD）MW25616L 実験用表示モジュール」
  * で利用する場合は下記の変更を行って下さい。
- *   USE_CMD_VFD  0 ==> 1
+ * #define  USE_MW25616L  1 
  * また、ローカル変数領域不足により動作が不安定になる場合があります。
  * その場合は、プログラム領域サイズを512～1024の間で調整して下さい。
  */
+
+#define USE_MW25616L  0 // MW25616L 実験用表示モジュールを利用 1: 利用しない:0 （デフォルト:0）
 
 // ** シリアルポート通信速度 *************************************************
 #define SERIALBAUD 115200
@@ -52,6 +55,7 @@
 #define USE_FULLSCREEN   1   // Mega2560フルスクリーンエディタ対応(1:有効 2:無効 デフォルト:1)
 
 #ifndef ARDUINO_AVR_MEGA2560
+#if !USE_MW25616L
 // ** 機能利用オプション設定 for Arduino Uno *********************************
 #define USE_CMD_PLAY   0  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
@@ -71,6 +75,27 @@
 #define USE_NEOPIXEL   0  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:0)
 #define USE_EVENT      1  // タイマー・外部割込みイベントの利用(0:利用しない 1:利用する デフォルト:1)
 #define USE_SLEEP      1  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:1) ※USE_EVENTを利用必須
+#else
+// ** 機能利用オプション設定 for MW25616L 実験用表示モジュール*********************
+#define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_CMD_I2C    1  // I2Cコマンドの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_PULSEIN    1  // PULSEIN関数の利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_SHIFTIN    1  // SHIFTIN関数の利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_SHIFTOUT   1  // SHIFTOUTコマンドの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_CMD_VFD    1  // VFDモジュールコマンドの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_RTC_DS3231 1  // I2C接続RTC DS3231の利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_I2CEEPROM  0  // I2C EEPROM対応(0:利用しない 1:利用する デフォルト:1)
+#define USE_SYSINFO    1  // SYSINFOコマンド(0:利用しない 1:利用する デフォルト:1)
+#define USE_GRADE      1  // GRADE関数(0:利用しない 1:利用する デフォルト:1)
+#define USE_DMP        1  // DMP$関数(0:利用しない 1:利用する デフォルト:1)
+#define USE_IR         1  // IR関数(0:利用しない 1:利用する デフォルト:1)
+#define USE_ANADEF     1  // アナログピン定数A0～A7orA15(0:利用しない 1:利用する デフォルト:1)
+#define USE_SO1602AWWB 0  // 有機ELキャラクタディスプレイ SO1602AWWB(0:利用しない 1:利用する デフォルト:0)
+#define USE_MISAKIFONT 0  // 美咲フォント500文字の利用(0:利用しない 1:利用する 2:非漢字のみ利用 デフォルト:0)
+#define USE_NEOPIXEL   0  // NeoPixelの利用(0:利用しない 1:利用する デフォルト:0)
+#define USE_EVENT      0  // タイマー・外部割込みイベントの利用(0:利用しない 1:利用する デフォルト:1)
+#define USE_SLEEP      0  // SLEEPコマンドの利用(0:利用しない 1:利用する デフォルト:1) ※USE_EVENTを利用必須
+#endif
 #else
 // ** 機能利用オプション設定 for Arduino MEGA2560******************************
 #define USE_CMD_PLAY   1  // PLAYコマンドの利用(0:利用しない 1:利用する デフォルト:1)
